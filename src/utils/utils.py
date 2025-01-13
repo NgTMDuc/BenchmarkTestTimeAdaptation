@@ -4,7 +4,7 @@ import os
 import random
 import sys
 from copy import deepcopy
-
+from tqdm import tqdm
 import numpy as np
 import torch
 import torch.nn as nn
@@ -133,19 +133,48 @@ def get_accuracy(model: torch.nn.Module,
                  device: torch.device = None):
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    # model = nn.DataParallel(model)
     correct = 0.
-    with torch.no_grad():
-        for i, data in enumerate(data_loader):
-            imgs, labels = data[0], data[1]
-            output = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
-            predictions = output.argmax(1)
-            correct += (predictions == labels.to(device)).float().sum()
-            pass
+    # with torch.no_grad():
+    for i, data in enumerate(tqdm(data_loader)):
+        imgs, labels = data[0], data[1]
+        output = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
+        predictions = output.argmax(1)
+        correct += (predictions == labels.to(device)).float().sum()
+            # pass
 
     accuracy = correct.item() / len(data_loader.dataset)
     return accuracy
 
+def evaluate_model(model: torch.nn.Module,
+                   data_loader: torch.utils.data.DataLoader,
+                #    cfg,
+                   device: torch.device = None,
+                   ):
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    correct = 0
+    correct_count = [0,0,0,0]
+    total_count = [0,0,0,0]
+    
+    for i, data in enumerate(tqdm(data_loader)):
+        imgs, labels = data[0], data[1]
+        output = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
+        labels = labels.to(device)
+        predictions = output.argmax(1)
+        
+        
+        place = data[2].to(device)
+        group = 2 * labels + place
+        TFtensor = (predictions == labels)
+        for group_idx in range(4):
+            correct_count[group_idx] += TFtensor[group==group_idx].sum().item()
+            total_count[group_idx] += len(TFtensor[group==group_idx])
+            
+        correct = sum(correct_count)
+    
+    return correct / len(data_loader.dataset), correct_count[0] / total_count[0], correct_count[1] / total_count[1], correct_count[2] / total_count[2], correct_count[3] / total_count[3]
+            
 
 def split_up_model(model):
     modules = list(model.children())[:-1]
@@ -258,7 +287,11 @@ def get_args():
     parser.add_argument('--T3A_FILTER_K', default=None, type=int)
     parser.add_argument('--LAME_AFFINITY', default=None, type=str)
     parser.add_argument('--LAME_KNN', default=None, type=int)
-
+    parser.add_argument('--DEYO_MARGIN', default= None, type =float)
+    parser.add_argument('--DEYO_MARGIN_E0', default= None, type =float)
+    parser.add_argument('--DEYO_PLPD_THRESHOLD', default= None, type =float)
+    parser.add_argument('--DEYO_FILTER_ENT', default= 1, type =int)
+    
     parser.add_argument('--TEST_EPOCH', default=None, type=int)
     parser.add_argument('--SHOT_CLS_PAR', default=None, type=float)
     parser.add_argument('--SHOT_ENT_PAR', default=None, type=float)

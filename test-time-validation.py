@@ -5,7 +5,7 @@ import numpy as np
 
 from src.methods import *
 from src.models.load_model import load_model
-from src.utils import get_accuracy, merge_cfg_from_args, get_args
+from src.utils import get_accuracy, merge_cfg_from_args, get_args, evaluate_model
 from src.utils.conf import cfg, load_cfg_fom_args, get_num_classes, get_domain_sequence
 
 logger = logging.getLogger(__name__)
@@ -15,8 +15,9 @@ def validation(cfg):
     num_classes = get_num_classes(dataset_name=cfg.CORRUPTION.DATASET)
     base_model = load_model(model_name=cfg.MODEL.ARCH, checkpoint_dir=os.path.join(cfg.CKPT_DIR, 'models'),
                             domain=cfg.CORRUPTION.SOURCE_DOMAIN)
-    base_model = base_model.cuda()
-
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    base_model = nn.DataParallel(base_model)
+    base_model.to(device)
     logger.info(f"Setting up test-time adaptation method: {cfg.MODEL.ADAPTATION.upper()}")
     if cfg.MODEL.ADAPTATION == "source":  # BN--0
         model, param_names = setup_source(base_model)
@@ -40,6 +41,9 @@ def validation(cfg):
         model, param_names = setup_eata(base_model, num_classes, cfg)
     elif cfg.MODEL.ADAPTATION == "sar":
         model = setup_sar(base_model, cfg, num_classes)
+    elif cfg.MODEL.ADAPTATION == "deyo":
+        print("Running deyo")
+        model, param_names = setup_deyo(base_model, cfg, num_classes)
     else:
         raise ValueError(f"Adaptation method '{cfg.MODEL.ADAPTATION}' is not supported!")
 
@@ -56,7 +60,7 @@ def validation(cfg):
 
     # prevent iterating multiple times over the same data in the mixed_domains setting
     if cfg.MODEL.CONTINUAL=='Fully':
-        dom_names_loop = [dom_names_all[0]]
+        dom_names_loop = dom_names_all
     elif cfg.MODEL.CONTINUAL=='Continual':
         dom_names_loop = dom_names_all
     # setup the severities for the gradual setting
@@ -65,7 +69,9 @@ def validation(cfg):
 
     accs = []
     domain_dict = {}
-
+    biased = False
+    if cfg.CORRUPTION.DATASET in {"coloredMNIST", "waterbirds"}:
+        biased = True
     # start evaluation
     for i_dom, domain_name in enumerate(dom_names_loop):
         if cfg.MODEL.CONTINUAL == 'Fully':
@@ -87,18 +93,28 @@ def validation(cfg):
                                                 num_aug=cfg.TEST.N_AUGMENTATIONS)
 
             for epoch in range(cfg.TEST.EPOCH):
-                acc = get_accuracy(
-                    model, data_loader=test_loader)
-                print(f"epoch: {epoch}, acc: {acc:.2%}")
+                if not biased:
+                    acc = get_accuracy(
+                        model, data_loader=test_loader)
+                else:
+                    acc, LL, LS, SL, SS = evaluate_model(model, data_loader=test_loader)
+                if cfg.TEST.EPOCH > 1:
+                    print(f"epoch: {epoch}, acc: {acc:.2%}")
+                    # logger.info(f"epoch: {epoch}, acc: {acc:.2%}")
+
+
             accs.append(acc)
-
-            logger.info(
-                f"{cfg.CORRUPTION.DATASET} accuracy % [{domain_name}{severity}][#samples={len(testset)}]: {acc:.2%}")
-
+            if not biased:
+                logger.info(
+                    f"{cfg.CORRUPTION.DATASET} accuracy % [{domain_name}{severity}][#samples={len(testset)}]: {acc:.2%}")
+            else:
+                logger.info(f"{cfg.CORRUPTION.DATASET} accuracy % [{domain_name}{severity}][#samples={len(testset)}]: {acc:.2%}")
+                logger.info(f"LL = {LL:.2%}, LS = {LS:.2%}, SL = {SL:.2%}, SS = {SS:.2%}, avg = {(LL + SL + LS + SS)/4:.2%}")
         logger.info(f"mean accuracy: {np.mean(accs):.2%}")
 
 
 if __name__ == "__main__":
+    print("Running")
     args = get_args()
     args.output_dir = args.output_dir if args.output_dir else 'validation'
     load_cfg_fom_args(args.cfg, args.output_dir)

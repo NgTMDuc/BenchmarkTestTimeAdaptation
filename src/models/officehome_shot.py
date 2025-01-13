@@ -1,4 +1,4 @@
-import device as device
+# import device as device
 import torch.nn as nn
 from ..models import network
 class OfficeHome_Shot(nn.Module):

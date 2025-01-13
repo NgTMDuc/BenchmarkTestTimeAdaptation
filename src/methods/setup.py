@@ -13,7 +13,9 @@ from .memo import MEMO
 from .norm import Norm
 from .sar import SAR
 from .tent import Tent
+from .deyo import DeYO
 from ..models import *
+import random
 from ..utils.utils import split_up_model
 
 
@@ -193,7 +195,14 @@ def setup_eata(model, num_classes, cfg):
                                                  batch_size=batch_size_src,
                                                  domain=cfg.CORRUPTION.SOURCE_DOMAIN)
     # sub dataset
-    fisher_dataset = torch.utils.data.Subset(fisher_dataset, range(cfg.EATA.NUM_SAMPLES))
+    num_data  = len(fisher_dataset)
+    indices = list(range(num_data))
+    random.shuffle(indices)
+    indices = indices[:cfg.EATA.NUM_SAMPLES]
+    # print(indices)
+    fisher_dataset = torch.utils.data.Subset(fisher_dataset, indices 
+                                            #  range(cfg.EATA.NUM_SAMPLES)
+                                             )
     fisher_loader = torch.utils.data.DataLoader(fisher_dataset, batch_size=batch_size_src, shuffle=True,
                                                 num_workers=cfg.TEST.NUM_WORKERS, pin_memory=True)
     model = EATA.configure_model(model)
@@ -221,15 +230,17 @@ def setup_eata(model, num_classes, cfg):
     del ewc_optimizer
 
     optimizer = setup_optimizer(params, cfg)
+    # e_margin = math.log(num_classes) * (cfg.EATA.E_MARGIN_COE)
     eta_model = EATA(model, optimizer,
                      steps=cfg.OPTIM.STEPS,
                      episodic=cfg.MODEL.EPISODIC,
                      fishers=fishers,
                      fisher_alpha=cfg.EATA.FISHER_ALPHA,
-                     e_margin=math.log(num_classes) * (0.40 if cfg.EATA.E_MARGIN_COE is None else cfg.EATA.E_MARGIN_COE),
+                     e_margin=math.log(num_classes) * (cfg.EATA.E_MARGIN_COE),
+                    #  e_margin= e_margin,
                      d_margin=cfg.EATA.D_MARGIN
                      )
-
+    # print(e_margin)
     return eta_model, param_names
 
 
@@ -298,3 +309,15 @@ def setup_sar(model, cfg, num_classes):
                     e_margin=math.log(num_classes) * (0.40 if cfg.SAR.E_MARGIN_COE is None else cfg.SAR.E_MARGIN_COE))
 
     return sar_model
+
+def setup_deyo(model, cfg, num_classes):
+    model = DeYO.configure_model(model)
+    params, param_names = DeYO.collect_params(model)
+    optimizer = setup_optimizer(params, cfg)
+    
+    deyo_model = DeYO(model, cfg, optimizer, steps = cfg.OPTIM.STEPS, episodic=cfg.MODEL.EPISODIC,
+                      deyo_margin = math.log(num_classes) * cfg.DEYO.MARGIN,
+                      margin_e0 = math.log(num_classes) * cfg.DEYO.MARGIN_E0
+                      )
+    
+    return deyo_model, param_names

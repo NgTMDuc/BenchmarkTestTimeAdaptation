@@ -25,7 +25,7 @@ cfg = _C
 # Setting - see README.md for more information
 
 # Data directory
-_C.DATA_DIR = "/data2/yongcan.yu/datasets"
+_C.DATA_DIR = "../DATA/"
 
 # Weight directory
 _C.CKPT_DIR = "./ckpt/"
@@ -44,7 +44,7 @@ _C.LOG_TIME = ''
 
 # Seed to use. If None, seed is not set!
 # Note that non-determinism is still present due to non-deterministic GPU ops.
-_C.RNG_SEED = 2020
+_C.RNG_SEED = 2024
 
 # Deterministic experiments.
 _C.DETERMINISM = False
@@ -107,7 +107,7 @@ _C.OPTIM.STEPS = 1
 _C.OPTIM.LR = 1e-3
 
 # Choices: Adam, SGD
-_C.OPTIM.METHOD = 'Adam'
+_C.OPTIM.METHOD = 'SGD'
 
 # Beta
 _C.OPTIM.BETA = 0.9
@@ -196,7 +196,7 @@ _C.LAME.FORCE_SYMMETRY = False
 
 # --------------------------------- SAR options ----------------------------- #
 _C.SAR = CfgNode()
-_C.SAR.RESET_CONSTANT = 0.2
+_C.SAR.RESET_CONSTANT = 0.005
 _C.SAR.E_MARGIN_COE = 0.4
 
 # --------------------------------- EATA options ---------------------------- #
@@ -212,7 +212,20 @@ _C.EATA.NUM_SAMPLES = 2000
 _C.EATA.D_MARGIN = 0.05
 
 _C.EATA.E_MARGIN_COE = 0.4
-
+# ------------------------------- DEYO options ---------------------------- #
+_C.DEYO = CfgNode()
+_C.DEYO.MARGIN = 0.5
+_C.DEYO.MARGIN_E0 = 0.4
+_C.DEYO.FILTER_ENT = 1
+_C.DEYO.FILTER_PLDPD = 1
+_C.DEYO.REWEIGHT_ENT = 1
+_C.DEYO.REWEIGHT_PLPD = 1
+_C.DEYO.PLPD_THRESHOLD = 0.2
+_C.DEYO.AUG_TYPE = "patch"
+_C.DEYO.OCCLUSION_SIZE = 112
+_C.DEYO.ROW_START = 56
+_C.DEYO.COLUMN_START = 56
+_C.DEYO.PATCH_LEN = 4
 # ------------------------------- Source options ---------------------------- #
 _C.SOURCE = CfgNode()
 
@@ -367,6 +380,7 @@ def complete_data_dir_path(root, dataset_name):
                "cifar10_c": "",
                "cifar100": "",
                "cifar100_c": "",
+               
                }
     return os.path.join(root, mapping[dataset_name])
 
@@ -375,7 +389,8 @@ def get_num_classes(dataset_name):
     dataset_name2num_classes = {"cifar10": 10, "cifar10_c": 10, "cifar100": 100, "cifar100_c": 100,
                                 "imagenet": 1000, "imagenet_c": 1000, "imagenet_k": 1000, "imagenet_r": 200,
                                 "imagenet_a": 200, "imagenet_d": 164, "imagenet_d109": 109, "imagenet200": 200,
-                                "domainnet126": 126, "office31": 31, "visda": 12, "officehome": 65
+                                "domainnet126": 126, "office31": 31, "visda": 12, "officehome": 65, 
+                                "coloredMNIST": 2, "waterbirds": 2
                                 }
     return dataset_name2num_classes[dataset_name]
 

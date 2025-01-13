@@ -10,6 +10,8 @@ from robustbench.data import load_cifar10c, load_cifar100c
 from .CustomCifarC_Dataset import CustomCifarC_Dataset
 from .Dataset_Idx import Dataset_Idx
 from .DomainNet126 import DomainNet126
+from .waterbirds_dataset import WaterbirdsDataset
+from .coloredMNIST import ColoredMNIST
 from .augmentations import get_augmentation_versions, NCropsTransform
 from .augmentations.transforms_memo_cifar import aug_cifar
 from .augmentations.transforms_memo_imagenet import aug_imagenet
@@ -65,7 +67,23 @@ def get_transform(dataset_name, adaptation, num_augment=1):
         for i in range(num_augment):
             transform_list.append(transforms_one)
         transform = NCropsTransform(transform_list)
+        
+    elif adaptation == "propose":
+        original_transform = get_transform(dataset_name, None)
+        transform_list = [original_transform]
+        if 'cifar' in dataset_name:
+            transform_aug = aug_cifar
+            transforms_one = transforms.Compose([original_transform, transform_aug])
+        else:
+            transforms_list = original_transform.transforms[:-1]
+            transforms_list.append(aug_imagenet)
+            transforms_list.append(normalize)
+            transforms_one = transforms.Compose(transforms_list)
 
+        for i in range(num_augment):
+            transform_list.append(transforms_one)
+        transform = NCropsTransform(transform_list)
+        
     else:
         # create non-method specific transformation
         if 'cifar' in dataset_name:
@@ -75,6 +93,18 @@ def get_transform(dataset_name, adaptation, num_augment=1):
             transform = transforms.Compose([transforms.CenterCrop(224),
                                             transforms.ToTensor(),
                                             normalize])
+        elif dataset_name == "coloredMNIST":
+            # print("Running coloredMNIST")
+            transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307, 0.1307, 0.), (0.3081, 0.3081, 0.3081))
+            ])
+        elif dataset_name == "waterbirds":
+            transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Resize((224, 224)),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ])
         else:
             # use classical ImageNet transformation procedure
             transform = transforms.Compose([
@@ -181,15 +211,15 @@ def load_cifar10(root, batch_size=64, workers=4, split="train", transforms=None)
     assert os.path.exists(root), 'CIFAR10 root path does not exist: {}'.format(root)
     if split == 'train':
         dataset = torchvision.datasets.CIFAR10(root=root, train=True,
-                                               transform=torchvision.transforms.ToTensor() if transforms is None else transforms)
+                                               transform=torchvision.transforms.ToTensor() if transforms is None else transforms, download = True)
     elif split == 'val':
         dataset = torchvision.datasets.CIFAR10(root=root, train=False,
-                                               transform=torchvision.transforms.ToTensor() if transforms is None else transforms)
+                                               transform=torchvision.transforms.ToTensor() if transforms is None else transforms, download = True)
     elif split == 'all':
         dataset = torchvision.datasets.CIFAR10(root=root, train=True,
-                                               transform=torchvision.transforms.ToTensor() if transforms is None else transforms)
+                                               transform=torchvision.transforms.ToTensor() if transforms is None else transforms, download = True)
         dataset2 = torchvision.datasets.CIFAR10(root=root, train=False,
-                                                transform=torchvision.transforms.ToTensor() if transforms is None else transforms)
+                                                transform=torchvision.transforms.ToTensor() if transforms is None else transforms, download = True)
         dataset = torch.utils.data.ConcatDataset([dataset, dataset2])
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True,
                                               num_workers=workers, pin_memory=True)
@@ -201,15 +231,15 @@ def load_cifar100(root, batch_size=64, workers=4, split="train", transforms=None
     assert os.path.exists(root), 'CIFAR100 root path does not exist: {}'.format(root)
     if split == 'train':
         dataset = torchvision.datasets.CIFAR100(root=root, train=True,
-                                                transform=torchvision.transforms.ToTensor() if transforms is None else transforms)
+                                                transform=torchvision.transforms.ToTensor() if transforms is None else transforms, download = True)
     elif split == 'val':
         dataset = torchvision.datasets.CIFAR100(root=root, train=False,
-                                                transform=torchvision.transforms.ToTensor() if transforms is None else transforms)
+                                                transform=torchvision.transforms.ToTensor() if transforms is None else transforms, download = True)
     elif split == 'all':
         dataset = torchvision.datasets.CIFAR100(root=root, train=True,
-                                                transform=torchvision.transforms.ToTensor() if transforms is None else transforms)
+                                                transform=torchvision.transforms.ToTensor() if transforms is None else transforms, download = True)
         dataset2 = torchvision.datasets.CIFAR100(root=root, train=False,
-                                                 transform=torchvision.transforms.ToTensor() if transforms is None else transforms)
+                                                 transform=torchvision.transforms.ToTensor() if transforms is None else transforms, download = True)
         dataset = torch.utils.data.ConcatDataset([dataset, dataset2])
     else:
         raise ValueError(f'Unknown split: {split}')
@@ -227,6 +257,17 @@ def load_imagenet(root, batch_size=64, workers=1, split="val", transforms=None, 
 
     return dataset, data_loader
 
+def load_coloredMNIST(root, batch_size = 64, workers = 1, split = "test", transform = None):
+    assert os.path.exists(root), 'ColoredMNIST root path does not exist: {}'.format(root)
+    dataset = ColoredMNIST(root = root, env = split, transform = transform)
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, shuffle = True, num_workers=workers, pin_memory=True)
+    return dataset, data_loader
+
+def load_waterbirds(root, batch_size = 64, workers = 1, split = "test", transform = None):
+    assert os.path.exists(root), 'WaterBirds root path does not exist: {}'.format(root)
+    dataset = WaterbirdsDataset(root = root, split = split, transform = transform)
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, shuffle = True, num_workers=workers, pin_memory=True)
+    return dataset, data_loader
 
 def load_domainnet126(root, domain, transforms, batch_size=64, workers=4, split='train'):
     assert os.path.exists(root), 'DomainNet root path does not exist: {}'.format(root)
@@ -277,9 +318,8 @@ def load_officehome(root, domain, transforms=None, batch_size=64, workers=4, spl
         all_txt = tr_txt + te_txt
         dataset = ImageList(all_txt, transform=image_test() if transforms is None else transforms)
 
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=workers, drop_last=False)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=workers, drop_last=True)
     return dataset, dataloader
-
 
 def load_dataset(dataset, root, batch_size=64, workers=4, split='train', adaptation=None, domain=None,
                  level=None, ckpt=None, num_aug=1, transforms=None):
@@ -307,6 +347,11 @@ def load_dataset(dataset, root, batch_size=64, workers=4, split='train', adaptat
     elif dataset == 'officehome':
         return load_officehome(root=root, domain=domain, batch_size=batch_size, workers=workers, split=split,
                                transforms=transforms)
+    elif dataset == "coloredMNIST":
+        # print(split)
+        return load_coloredMNIST(root=root, batch_size=batch_size, workers=workers, split=split, transform=transforms)
+    elif dataset == "waterbirds":
+        return load_waterbirds(root = root, batch_size=64, workers=workers, split=split, transform=transforms)
     else:
         raise ValueError('Unknown dataset: {}'.format(dataset))
 
