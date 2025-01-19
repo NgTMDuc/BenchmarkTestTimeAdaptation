@@ -1,0 +1,34 @@
+CORRUPTION:
+  DATASET: domainnet126
+  SOURCE_DOMAIN: clipart
+  SOURCE_DOMAINS:
+    - clipart
+    - painting
+    - sketch
+    - real
+  SEVERITY:
+    - 5
+  TYPE:
+    - real
+    - painting
+    - sketch
+MODEL:
+  ADAPTATION: deyo
+  ARCH: domainnet126_shot
+# OPTIM:
+#   METHOD: Adam
+#   STEPS: 1
+#   BETA: 0.9
+#   LR: 1e-3
+#   WD: 0.
+# M_TEACHER:
+#   MOMENTUM: 0.999
+# COTTA:
+#   RST: 0.01
+#   AP: 0.92
+# OPTIM:
+#   LR: 0.01 
+# DEYO:
+#   MARGIN: 0.5
+#   MARGIN_E0: 0.4
+#   FILTER_ENT: 1

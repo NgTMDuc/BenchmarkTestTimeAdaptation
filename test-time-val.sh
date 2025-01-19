@@ -1,13 +1,13 @@
 ### config
 # export CUDA_LAUNCH_BLOCKING=1
 
-DATASET="coloredmnist" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
-METHOD="deyo"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
+DATASET="domainnet126" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
+METHOD="sar"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
 MODEL_CONTINUAL='Fully' # Continual Fully
-GPUS=(1 2) #available gpus
+GPUS=(0) #available gpus
 NUM_GPUS=${#GPUS[@]}
-# NUM_MAX_JOB=$((NUM_GPUS))
-NUM_MAX_JOB=1
+NUM_MAX_JOB=$((NUM_GPUS))
+# NUM_MAX_JOB=1
 i=0
 #### Useful functions
 wait_n() {

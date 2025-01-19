@@ -1,8 +1,8 @@
 ### config
-DATASET="coloredMNIST" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet
-METHOD="tent"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
+DATASET="domainnet126" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet
+METHOD="eata"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
 MODEL_CONTINUAL='Fully' # Continual Fully
-GPUS=(1 3) #available gpus
+GPUS=(0) #available gpus
 NUM_GPUS=${#GPUS[@]}
 # NUM_MAX_JOB=$((NUM_GPUS))
 NUM_MAX_JOB=1
@@ -31,7 +31,7 @@ test_time_adaptation() {
     elif [ "$DATASET" == "imagenet_c" ] || [ "$DATASET" == "domainnet126" ] || [ "$DATASET" == "officehome" ]; then
       lrs=(0.001 0.0001 0.0002 0.0005 0.00025 0.00005)
       bn_alphas=(0.1 0.2 0.5 0.9)
-    elif [ "$DATASET" == "waterbirds" ] || 
+    # elif [ "$DATASET" == "waterbirds" ] || 
     fi
     for lr in ${lrs[*]}; do
       for bn_alpha in ${bn_alphas[*]}; do
