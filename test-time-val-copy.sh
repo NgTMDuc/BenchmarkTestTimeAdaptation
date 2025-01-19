@@ -1,11 +1,13 @@
 ### config
-DATASET="coloredMNIST" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet
+# export CUDA_LAUNCH_BLOCKING=1
+
+DATASET="officehome" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
 METHOD="tent"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
 MODEL_CONTINUAL='Fully' # Continual Fully
-GPUS=(1 3) #available gpus
+GPUS=(0 1 3) #available gpus
 NUM_GPUS=${#GPUS[@]}
-# NUM_MAX_JOB=$((NUM_GPUS))
-NUM_MAX_JOB=1
+NUM_MAX_JOB=$((NUM_GPUS))
+# NUM_MAX_JOB=1
 i=0
 #### Useful functions
 wait_n() {
@@ -24,14 +26,13 @@ test_time_adaptation() {
   ###############################################################
 
   #Evaluate memo
-  if [ "$METHOD" == "deyo" ]; then
+  if [ "$METHOD" == "memo" ]; then
     if [ "$DATASET" == "cifar10_c" ] || [ "$DATASET" == "cifar100_c" ]; then
       lrs=(0.01 0.001 0.002 0.005 0.0005)
       bn_alphas=(0.1 0.2 0.5 0.9)
     elif [ "$DATASET" == "imagenet_c" ] || [ "$DATASET" == "domainnet126" ] || [ "$DATASET" == "officehome" ]; then
       lrs=(0.001 0.0001 0.0002 0.0005 0.00025 0.00005)
       bn_alphas=(0.1 0.2 0.5 0.9)
-    elif [ "$DATASET" == "waterbirds" ] || 
     fi
     for lr in ${lrs[*]}; do
       for bn_alpha in ${bn_alphas[*]}; do
@@ -41,6 +42,7 @@ test_time_adaptation() {
           --OPTIM_LR "$lr" --BN_ALPHA "$bn_alpha" &
       done
     done
+
   #Evaluate norm_alpha, norm_alpha64
   elif [ "$METHOD" == "norm_alpha" ] || [ "$METHOD" == "norm_alpha64" ]; then
     bn_alphas=(0.05 0.1 0.2 0.3 0.5 0.7 0.9 0.95)
@@ -50,6 +52,7 @@ test_time_adaptation() {
       CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
         --BN_ALPHA "$bn_alpha" &
     done
+
   #Evaluate tent
   elif [ "$METHOD" == "tent" ] || [ "$METHOD" == "tentE10" ]; then
     if [ "$DATASET" == "cifar10_c" ] || [ "$DATASET" == "cifar100_c" ]; then
@@ -60,7 +63,7 @@ test_time_adaptation() {
       lrs=(0.000001 0.00002 0.00001 0.00005 0.0001 0.0002 0.0005 0.001)
     elif [ "$DATASET" == "imagenet_efn" ]; then
       lrs=(0.0005 0.001 0.002 0.005 0.01 0.02 0.05 0.1)
-    elif [ "$DATASET" == "coloredMNIST" ]; then
+    elif [ "$DATASET" == "coloredmnist" ] || [ "$DATASET" == "waterbirds" ];  then
       lrs=(0.0025 0.005 0.01 0.025 0.05 0.1 0.25 0.5)
     fi
     for lr in ${lrs[*]}; do
@@ -74,6 +77,7 @@ test_time_adaptation() {
           --OPTIM_LR "$lr" --MODEL_CONTINUAL "$MODEL_CONTINUAL" &
       fi
     done
+
   #Evaluate cotta
   elif [ "$METHOD" == "cotta" ] || [ "$METHOD" == "cottaE10" ]; then
     if [ "$DATASET" == "cifar10_c" ] || [ "$DATASET" == "cifar100_c" ]; then
@@ -130,6 +134,7 @@ test_time_adaptation() {
         done
       done
     done
+
   #Evaluate eata
   elif [ "$METHOD" == "eata" ] || [ "$METHOD" == "eataE10" ]; then
     dms=(0.05 0.1 0.2 0.4)
@@ -147,6 +152,9 @@ test_time_adaptation() {
     elif [ "$DATASET" == "imagenet_efn" ]; then
       lrs=(0.00005 0.0001 0.0005 0.001 0.002 0.005 0.01 0.02 0.05 0.1 0.2)
       em_coes=(0.1 0.2 0.4 0.6)
+    elif [ "$DATASET" == "coloredmnist" ] || [ "$DATASET" == "waterbirds" ];  then
+      lrs=(0.00025 0.0005 0.0025 0.005 0.01 0.025 0.05 0.1 0.25)
+      # em_cor
     fi
     for lr in ${lrs[*]}; do
       for dm in ${dms[*]}; do
@@ -197,7 +205,7 @@ test_time_adaptation() {
     done
   #Evaluate sar
   elif [ "$METHOD" == "sar" ] || [ "$METHOD" == "sarE10" ]; then
-    rsts=(0.05 0.1 0.2 0.3 0.5)
+    rsts=(0.005 0.01 0.02 0.03 0.05)
     em_coes=(0.4)
     if [ "$DATASET" == "cifar10_c" ] || [ "$DATASET" == "cifar100_c" ]; then
       lrs=(0.0001 0.0002 0.00025 0.0005 0.001 0.002 0.005 0.01)
@@ -208,6 +216,8 @@ test_time_adaptation() {
     elif [ "$DATASET" == "imagenet_efn" ]; then
       lrs=(0.00005 0.0001 0.0005 0.001 0.002 0.005 0.01 0.02 0.05 0.1 0.2)
       em_coes=(0.8)
+    elif [ "$DATASET" == "coloredmnist" ] || [ "$DATASET" == "waterbirds" ];  then
+      lrs=(0.00025 0.0005 0.00125 0.0025 0.005 0.01 0.025 0.05)
     fi
     for lr in ${lrs[*]}; do
       for rst in ${rsts[*]}; do
@@ -245,6 +255,30 @@ test_time_adaptation() {
           wait_n
           CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
             --OPTIM_LR "$lr" --ADACONTRAST_NUM_NEIGHBORS "$num_neighbor" --ADACONTRAST_QUEUE_SIZE "$queue_size" &
+        done
+      done
+    done
+
+  #Evaluate deyo
+  elif [ "$METHOD" == "deyo" ]; then
+    if [ "$DATASET" == "coloredmnist" ]; then
+              filter_ent=0
+    else
+        filter_ent=1
+    fi
+    lrs=(0.00025 0.00125)
+    margins=(0.3 0.4 0.5 1)
+    margin_e0s=(0 0.2 0.4 1)
+    thrs=(-1 0 0.2 0.4)
+    for lr in ${lrs[*]}; do
+      for margin in ${margins[*]}; do
+        for margin_e0 in ${margin_e0s[*]}; do
+          for thr in ${thrs[*]}; do
+            i=$((i + 1))
+            wait_n
+            CUDA_VISIBLE_DEVICES="$GPUS" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+              --OPTIM_LR "$lr" --DEYO_MARGIN "$margin" --DEYO_MARGIN_E0 "$margin_e0" --DEYO_PLPD_THRESHOLD "$thr" --DEYO_FILTER_ENT "$filter_ent" &
+          done
         done
       done
     done

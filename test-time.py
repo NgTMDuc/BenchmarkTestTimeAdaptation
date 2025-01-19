@@ -61,7 +61,7 @@ def evaluate(cfg):
 
     # prevent iterating multiple times over the same data in the mixed_domains setting
     dom_names_loop = dom_names_all
-
+    
     # setup the severities for the gradual setting
 
     severities = cfg.CORRUPTION.SEVERITY
