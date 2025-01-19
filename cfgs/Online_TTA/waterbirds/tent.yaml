@@ -1,12 +1,12 @@
 MODEL:
   ADAPTATION: tent
-  ARCH: resnet18-bn
+  ARCH: resnet50-bn
 TEST:
   BATCH_SIZE: 64
 CORRUPTION:
-  SOURCE_DATASET: coloredMNIST
+  SOURCE_DATASET: waterbirds
   SOURCE_DOMAIN: origin
-  DATASET: coloredMNIST
+  DATASET: waterbirds
   SEVERITY:
     - 5
   TYPE:
@@ -16,4 +16,8 @@ CORRUPTION:
 #   LR: 0.00125
 #   MOMENTUM: 0.9
 #   WD: 0.0
-#   NESTEROV: False
+# #   NESTEROV: False
+# DEYO:
+#   PLPD_THRESHOLD: 0.5
+  # DEYO_MARGIN_E0: 1
+  # FILTER_ENT: False

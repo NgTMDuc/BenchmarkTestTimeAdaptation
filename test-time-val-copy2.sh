@@ -1,13 +1,13 @@
 ### config
 # export CUDA_LAUNCH_BLOCKING=1
 
-DATASET="waterbirds" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
+DATASET="coloredmnist" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
 METHOD="eata"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
 MODEL_CONTINUAL='Fully' # Continual Fully
-GPUS=(0 1 2) #available gpus
-# NUM_GPUS=${#GPUS[@]}
-# NUM_MAX_JOB=$((NUM_GPUS))
-NUM_MAX_JOB=1
+GPUS=(0) #available gpus
+NUM_GPUS=${#GPUS[@]}
+NUM_MAX_JOB=$((NUM_GPUS))
+# NUM_MAX_JOB=1
 i=0
 #### Useful functions
 wait_n() {
@@ -63,7 +63,7 @@ test_time_adaptation() {
       lrs=(0.000001 0.00002 0.00001 0.00005 0.0001 0.0002 0.0005 0.001)
     elif [ "$DATASET" == "imagenet_efn" ]; then
       lrs=(0.0005 0.001 0.002 0.005 0.01 0.02 0.05 0.1)
-    elif [ "$DATASET" == "coloredmnist" ]; then
+    elif [ "$DATASET" == "coloredmnist" ] || [ "$DATASET" == "waterbirds" ];  then
       lrs=(0.0025 0.005 0.01 0.025 0.05 0.1 0.25 0.5)
     fi
     for lr in ${lrs[*]}; do
@@ -166,7 +166,7 @@ test_time_adaptation() {
               CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
                 --OPTIM_LR "$lr" --EATA_DM "$dm" --EATA_FISHER_ALPHA "$fisher_alpha" --MODEL_CONTINUAL "$MODEL_CONTINUAL" --EATA_E_MARGIN_COE "$em_coe"&
             else
-              CUDA_VISIBLE_DEVICES="$GPUS" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+              CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
                 --OPTIM_LR "$lr" --EATA_DM "$dm" --EATA_FISHER_ALPHA "$fisher_alpha" --MODEL_CONTINUAL "$MODEL_CONTINUAL" --EATA_E_MARGIN_COE "$em_coe"&
             fi
           done
@@ -205,7 +205,7 @@ test_time_adaptation() {
     done
   #Evaluate sar
   elif [ "$METHOD" == "sar" ] || [ "$METHOD" == "sarE10" ]; then
-    rsts=(0.05 0.1 0.2 0.3 0.5)
+    rsts=(0.005 0.01 0.02 0.03 0.05)
     em_coes=(0.4)
     if [ "$DATASET" == "cifar10_c" ] || [ "$DATASET" == "cifar100_c" ]; then
       lrs=(0.0001 0.0002 0.00025 0.0005 0.001 0.002 0.005 0.01)
@@ -216,6 +216,8 @@ test_time_adaptation() {
     elif [ "$DATASET" == "imagenet_efn" ]; then
       lrs=(0.00005 0.0001 0.0005 0.001 0.002 0.005 0.01 0.02 0.05 0.1 0.2)
       em_coes=(0.8)
+    elif [ "$DATASET" == "coloredmnist" ] || [ "$DATASET" == "waterbirds" ];  then
+      lrs=(0.00025 0.0005 0.00125 0.0025 0.005 0.01 0.025 0.05)
     fi
     for lr in ${lrs[*]}; do
       for rst in ${rsts[*]}; do

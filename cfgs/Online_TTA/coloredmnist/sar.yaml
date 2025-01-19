@@ -1,5 +1,5 @@
 MODEL:
-  ADAPTATION: tent
+  ADAPTATION: sar
   ARCH: resnet18-bn
 TEST:
   BATCH_SIZE: 64
@@ -11,9 +11,3 @@ CORRUPTION:
     - 5
   TYPE:
     - spurious
-# OPTIM:
-#   METHOD: SGD
-#   LR: 0.00125
-#   MOMENTUM: 0.9
-#   WD: 0.0
-#   NESTEROV: False

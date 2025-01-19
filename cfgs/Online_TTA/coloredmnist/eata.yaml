@@ -1,5 +1,5 @@
 MODEL:
-  ADAPTATION: tent
+  ADAPTATION: eata
   ARCH: resnet18-bn
 TEST:
   BATCH_SIZE: 64

@@ -1,13 +1,13 @@
 ### config
 # export CUDA_LAUNCH_BLOCKING=1
 
-DATASET="waterbirds" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
+DATASET="cifar100_c" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
 METHOD="eata"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
 MODEL_CONTINUAL='Fully' # Continual Fully
-GPUS=(0 1 2) #available gpus
-# NUM_GPUS=${#GPUS[@]}
-# NUM_MAX_JOB=$((NUM_GPUS))
-NUM_MAX_JOB=1
+GPUS=(2) #available gpus
+NUM_GPUS=${#GPUS[@]}
+NUM_MAX_JOB=$((NUM_GPUS))
+# NUM_MAX_JOB=1
 i=0
 #### Useful functions
 wait_n() {
@@ -42,7 +42,6 @@ test_time_adaptation() {
           --OPTIM_LR "$lr" --BN_ALPHA "$bn_alpha" &
       done
     done
-
   #Evaluate norm_alpha, norm_alpha64
   elif [ "$METHOD" == "norm_alpha" ] || [ "$METHOD" == "norm_alpha64" ]; then
     bn_alphas=(0.05 0.1 0.2 0.3 0.5 0.7 0.9 0.95)
@@ -52,7 +51,6 @@ test_time_adaptation() {
       CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
         --BN_ALPHA "$bn_alpha" &
     done
-
   #Evaluate tent
   elif [ "$METHOD" == "tent" ] || [ "$METHOD" == "tentE10" ]; then
     if [ "$DATASET" == "cifar10_c" ] || [ "$DATASET" == "cifar100_c" ]; then
@@ -63,7 +61,7 @@ test_time_adaptation() {
       lrs=(0.000001 0.00002 0.00001 0.00005 0.0001 0.0002 0.0005 0.001)
     elif [ "$DATASET" == "imagenet_efn" ]; then
       lrs=(0.0005 0.001 0.002 0.005 0.01 0.02 0.05 0.1)
-    elif [ "$DATASET" == "coloredmnist" ]; then
+    elif [ "$DATASET" == "coloredMNIST" ]; then
       lrs=(0.0025 0.005 0.01 0.025 0.05 0.1 0.25 0.5)
     fi
     for lr in ${lrs[*]}; do
@@ -77,7 +75,6 @@ test_time_adaptation() {
           --OPTIM_LR "$lr" --MODEL_CONTINUAL "$MODEL_CONTINUAL" &
       fi
     done
-
   #Evaluate cotta
   elif [ "$METHOD" == "cotta" ] || [ "$METHOD" == "cottaE10" ]; then
     if [ "$DATASET" == "cifar10_c" ] || [ "$DATASET" == "cifar100_c" ]; then
@@ -134,7 +131,6 @@ test_time_adaptation() {
         done
       done
     done
-
   #Evaluate eata
   elif [ "$METHOD" == "eata" ] || [ "$METHOD" == "eataE10" ]; then
     dms=(0.05 0.1 0.2 0.4)
@@ -152,9 +148,6 @@ test_time_adaptation() {
     elif [ "$DATASET" == "imagenet_efn" ]; then
       lrs=(0.00005 0.0001 0.0005 0.001 0.002 0.005 0.01 0.02 0.05 0.1 0.2)
       em_coes=(0.1 0.2 0.4 0.6)
-    elif [ "$DATASET" == "coloredmnist" ] || [ "$DATASET" == "waterbirds" ];  then
-      lrs=(0.00025 0.0005 0.0025 0.005 0.01 0.025 0.05 0.1 0.25)
-      # em_cor
     fi
     for lr in ${lrs[*]}; do
       for dm in ${dms[*]}; do
@@ -166,7 +159,7 @@ test_time_adaptation() {
               CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
                 --OPTIM_LR "$lr" --EATA_DM "$dm" --EATA_FISHER_ALPHA "$fisher_alpha" --MODEL_CONTINUAL "$MODEL_CONTINUAL" --EATA_E_MARGIN_COE "$em_coe"&
             else
-              CUDA_VISIBLE_DEVICES="$GPUS" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+              CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
                 --OPTIM_LR "$lr" --EATA_DM "$dm" --EATA_FISHER_ALPHA "$fisher_alpha" --MODEL_CONTINUAL "$MODEL_CONTINUAL" --EATA_E_MARGIN_COE "$em_coe"&
             fi
           done

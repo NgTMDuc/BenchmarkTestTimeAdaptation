@@ -1,23 +1,28 @@
 import logging
 import os
+import time
 
 import numpy as np
-
+import random
 from src.methods import *
 from src.models.load_model import load_model
-from src.utils import get_accuracy, merge_cfg_from_args, get_args, evaluate_model
+from src.utils import get_accuracy, get_args, evaluate_model
 from src.utils.conf import cfg, load_cfg_fom_args, get_num_classes, get_domain_sequence
-
+import warnings
+warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 
 
-def validation(cfg):
+def evaluate(cfg):
     num_classes = get_num_classes(dataset_name=cfg.CORRUPTION.DATASET)
-    base_model = load_model(model_name=cfg.MODEL.ARCH, checkpoint_dir=os.path.join(cfg.CKPT_DIR, 'models'),
-                            domain=cfg.CORRUPTION.SOURCE_DOMAIN)
+    base_model = load_model(model_name=cfg.MODEL.ARCH, 
+                            checkpoint_dir=os.path.join(cfg.CKPT_DIR, 'models'),
+                            domain=cfg.CORRUPTION.SOURCE_DOMAIN, 
+                            cfg = cfg)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     base_model = nn.DataParallel(base_model)
     base_model.to(device)
+
     logger.info(f"Setting up test-time adaptation method: {cfg.MODEL.ADAPTATION.upper()}")
     if cfg.MODEL.ADAPTATION == "source":  # BN--0
         model, param_names = setup_source(base_model)
@@ -42,7 +47,6 @@ def validation(cfg):
     elif cfg.MODEL.ADAPTATION == "sar":
         model = setup_sar(base_model, cfg, num_classes)
     elif cfg.MODEL.ADAPTATION == "deyo":
-        print("Running deyo")
         model, param_names = setup_deyo(base_model, cfg, num_classes)
     else:
         raise ValueError(f"Adaptation method '{cfg.MODEL.ADAPTATION}' is not supported!")
@@ -51,36 +55,27 @@ def validation(cfg):
     if cfg.CORRUPTION.DATASET in {"domainnet126", "officehome"}:
         # extract the domain sequence for a specific checkpoint.
         dom_names_all = get_domain_sequence(cfg.CORRUPTION.DATASET, cfg.CORRUPTION.SOURCE_DOMAIN)
-    elif cfg.CORRUPTION.DATASET in {"imagenet_d", "imagenet_d109"} and not cfg.CORRUPTION.TYPE[0]:
-        # dom_names_all = ["clipart", "infograph", "painting", "quickdraw", "real", "sketch"]
-        dom_names_all = ["clipart", "infograph", "painting", "real", "sketch"]
     else:
         dom_names_all = cfg.CORRUPTION.TYPE
     logger.info(f"Using the following domain sequence: {dom_names_all}")
 
     # prevent iterating multiple times over the same data in the mixed_domains setting
-    if cfg.MODEL.CONTINUAL=='Fully':
-        dom_names_loop = dom_names_all
-    elif cfg.MODEL.CONTINUAL=='Continual':
-        dom_names_loop = dom_names_all
+    dom_names_loop = dom_names_all
+    
     # setup the severities for the gradual setting
 
-    severities = [cfg.CORRUPTION.SEVERITY[0]]
+    severities = cfg.CORRUPTION.SEVERITY
 
     accs = []
-    domain_dict = {}
     biased = False
     if cfg.CORRUPTION.DATASET in {"coloredMNIST", "waterbirds"}:
         biased = True
     # start evaluation
     for i_dom, domain_name in enumerate(dom_names_loop):
-        if cfg.MODEL.CONTINUAL == 'Fully':
-            try:
-                model.reset()
-                logger.info("resetting model")
-            except:
-                logger.warning("not resetting model")
-        elif cfg.MODEL.CONTINUAL == 'Continual':
+        try:
+            model.reset()
+            logger.info("resetting model")
+        except:
             logger.warning("not resetting model")
 
         for severity in severities:
@@ -110,15 +105,32 @@ def validation(cfg):
             else:
                 logger.info(f"{cfg.CORRUPTION.DATASET} accuracy % [{domain_name}{severity}][#samples={len(testset)}]: {acc:.2%}")
                 logger.info(f"LL = {LL:.2%}, LS = {LS:.2%}, SL = {SL:.2%}, SS = {SS:.2%}, avg = {(LL + SL + LS + SS)/4:.2%}")
+
         logger.info(f"mean accuracy: {np.mean(accs):.2%}")
+    return accs
 
 
 if __name__ == "__main__":
-    print("Running")
     args = get_args()
-    args.output_dir = args.output_dir if args.output_dir else 'validation'
+    args.output_dir = args.output_dir if args.output_dir else 'online_evaluation'
     load_cfg_fom_args(args.cfg, args.output_dir)
-    merge_cfg_from_args(cfg, args)
-    cfg.CORRUPTION.SOURCE_DOMAIN = cfg.CORRUPTION.SOURCE_DOMAINS[0]
     logger.info(cfg)
-    validation(cfg)
+    # random.seed(cfg.RNG_SEED)
+    start_time = time.time()
+    accs = []
+    for domain in cfg.CORRUPTION.SOURCE_DOMAINS:
+        logger.info("#" * 50 + f'evaluating domain {domain}' + "#" * 50)
+        cfg.CORRUPTION.SOURCE_DOMAIN = domain
+        acc = evaluate(cfg)
+        accs.extend(acc)
+
+    logger.info("#" * 50 + 'final result' + "#" * 50)
+    logger.info(f"total mean accuracy: {np.mean(accs):.2%}")
+
+    end_time = time.time()
+    run_time = end_time - start_time
+    hours = int(run_time / 3600)
+    minutes = int((run_time - hours * 3600) / 60)
+    seconds = int(run_time - hours * 3600 - minutes * 60)
+    logger.info(f"total run time: {hours}h {minutes}m {seconds}s")
+
