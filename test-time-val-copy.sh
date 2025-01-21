@@ -1,11 +1,24 @@
 ### config
 # export CUDA_LAUNCH_BLOCKING=1
 
-DATASET="waterbirds" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
+DATASET="domainnet126" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
 METHOD="eata"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
 MODEL_CONTINUAL='Fully' # Continual Fully
-GPUS=(0 1 2) #available gpus
-CUDA_VISIBLE_DEVICES="${GPUS[*]}"
+GPUS=(0) #available gpus
+NUM_GPUS=${#GPUS[@]}
+NUM_MAX_JOB=$((NUM_GPUS))
+# NUM_MAX_JOB=1
+i=0
+#### Useful functions
+wait_n() {
+  #limit the max number of jobs as NUM_MAX_JOB and wait
+  background=($(jobs -p))
+  local default_num_jobs=$NUM_MAX_JOB #num concurrent jobs
+  local num_max_jobs=${1:-$default_num_jobs}
+  if ((${#background[@]} >= num_max_jobs)); then
+    wait -n
+  fi
+}
 
 test_time_adaptation() {
   ###############################################################

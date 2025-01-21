@@ -5,20 +5,21 @@ DATASET="officehome" # cifar10_c cifar100_c imagenet_c domainnet126 officehome i
 METHOD="deyo"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
 MODEL_CONTINUAL='Fully' # Continual Fully
 GPUS=(0) #available gpus
-NUM_GPUS=${#GPUS[@]}
-NUM_MAX_JOB=$((NUM_GPUS))
+# NUM_GPUS=${#GPUS[@]}
+CUDA_VISIBLE_DEVICES="${GPUS[*]}"
+# NUM_MAX_JOB=$((NUM_GPUS))
 # NUM_MAX_JOB=1
-i=0
+# i=0
 #### Useful functions
-wait_n() {
-  #limit the max number of jobs as NUM_MAX_JOB and wait
-  background=($(jobs -p))
-  local default_num_jobs=$NUM_MAX_JOB #num concurrent jobs
-  local num_max_jobs=${1:-$default_num_jobs}
-  if ((${#background[@]} >= num_max_jobs)); then
-    wait -n
-  fi
-}
+# wait_n() {
+#   #limit the max number of jobs as NUM_MAX_JOB and wait
+#   background=($(jobs -p))
+#   local default_num_jobs=$NUM_MAX_JOB #num concurrent jobs
+#   local num_max_jobs=${1:-$default_num_jobs}
+#   if ((${#background[@]} >= num_max_jobs)); then
+#     wait -n
+#   fi
+# }
 
 test_time_adaptation() {
   ###############################################################
@@ -36,9 +37,7 @@ test_time_adaptation() {
     fi
     for lr in ${lrs[*]}; do
       for bn_alpha in ${bn_alphas[*]}; do
-        wait_n
-        i=$((i + 1))
-        CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+        python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
           --OPTIM_LR "$lr" --BN_ALPHA "$bn_alpha" &
       done
     done
@@ -47,9 +46,7 @@ test_time_adaptation() {
   elif [ "$METHOD" == "norm_alpha" ] || [ "$METHOD" == "norm_alpha64" ]; then
     bn_alphas=(0.05 0.1 0.2 0.3 0.5 0.7 0.9 0.95)
     for bn_alpha in ${bn_alphas[*]}; do
-      wait_n
-      i=$((i + 1))
-      CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+      python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
         --BN_ALPHA "$bn_alpha" &
     done
 
@@ -67,13 +64,11 @@ test_time_adaptation() {
       lrs=(0.0025 0.005 0.01 0.025 0.05 0.1 0.25 0.5)
     fi
     for lr in ${lrs[*]}; do
-      wait_n
-      i=$((i + 1))
       if [ "$MODEL_CONTINUAL" == "Continual" ]; then
-        CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
+        python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
           --OPTIM_LR "$lr" --MODEL_CONTINUAL "$MODEL_CONTINUAL" &
       else
-        CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+        python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
           --OPTIM_LR "$lr" --MODEL_CONTINUAL "$MODEL_CONTINUAL" &
       fi
     done
@@ -121,13 +116,11 @@ test_time_adaptation() {
     for lr in ${lrs[*]}; do
       for rst in ${rsts[*]}; do
         for ap in ${aps[*]}; do
-          i=$((i + 1))
-          wait_n
           if [ "$MODEL_CONTINUAL" == "Continual" ]; then
-            CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
+            python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
               --OPTIM_LR "$lr" --COTTA_RST "$rst" --COTTA_AP "$ap" --MODEL_CONTINUAL "$MODEL_CONTINUAL" &
           else
-            CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+            python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
               --OPTIM_LR "$lr" --COTTA_RST "$rst" --COTTA_AP "$ap" --MODEL_CONTINUAL "$MODEL_CONTINUAL" &
           fi
 #          sleep 600
@@ -160,13 +153,11 @@ test_time_adaptation() {
       for dm in ${dms[*]}; do
         for fisher_alpha in ${fisher_alphas[*]}; do
           for em_coe in ${em_coes[*]}; do
-            i=$((i + 1))
-            wait_n
             if [ "$MODEL_CONTINUAL" == "Continual" ]; then
-              CUDA_VISIBLE_DEVICES="$GPUS" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
+              python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
                 --OPTIM_LR "$lr" --EATA_DM "$dm" --EATA_FISHER_ALPHA "$fisher_alpha" --MODEL_CONTINUAL "$MODEL_CONTINUAL" --EATA_E_MARGIN_COE "$em_coe"&
             else
-              CUDA_VISIBLE_DEVICES="$GPUS" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+              python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
                 --OPTIM_LR "$lr" --EATA_DM "$dm" --EATA_FISHER_ALPHA "$fisher_alpha" --MODEL_CONTINUAL "$MODEL_CONTINUAL" --EATA_E_MARGIN_COE "$em_coe"&
             fi
           done
@@ -181,13 +172,11 @@ test_time_adaptation() {
     fi
 
     for filter_k in ${filter_ks[*]}; do
-      i=$((i + 1))
-      wait_n
       if [ "$MODEL_CONTINUAL" == "Continual" ]; then
-        CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
+        python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
           --T3A_FILTER_K "$filter_k" --MODEL_CONTINUAL "$MODEL_CONTINUAL" &
       else
-        CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+        python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
           --T3A_FILTER_K "$filter_k" --MODEL_CONTINUAL "$MODEL_CONTINUAL" &
       fi
     done
@@ -197,9 +186,7 @@ test_time_adaptation() {
     KNNs=(1 3 5)
     for aff in ${affs[*]}; do
       for KNN in ${KNNs[*]}; do
-        i=$((i + 1))
-      wait_n
-      CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+      python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
         --LAME_AFFINITY "$aff" --LAME_KNN "$KNN" &
       done
     done
@@ -222,13 +209,11 @@ test_time_adaptation() {
     for lr in ${lrs[*]}; do
       for rst in ${rsts[*]}; do
         for em_coe in ${em_coes[*]}; do
-          i=$((i + 1))
-          wait_n
           if [ "$MODEL_CONTINUAL" == "Continual" ]; then
-            CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
+            python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
               --OPTIM_LR "$lr" --SAR_RESET_CONSTANT "$rst" --MODEL_CONTINUAL "$MODEL_CONTINUAL" --SAR_E_MARGIN_COE "$em_coe" &
           else
-            CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+            python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
               --OPTIM_LR "$lr" --SAR_RESET_CONSTANT "$rst" --MODEL_CONTINUAL "$MODEL_CONTINUAL" --SAR_E_MARGIN_COE "$em_coe" &
           fi
         done
@@ -251,9 +236,7 @@ test_time_adaptation() {
     for lr in ${lrs[*]}; do
       for num_neighbor in ${num_neighbors[*]}; do
         for queue_size in ${queue_sizes[*]}; do
-          i=$((i + 1))
-          wait_n
-          CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+          python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
             --OPTIM_LR "$lr" --ADACONTRAST_NUM_NEIGHBORS "$num_neighbor" --ADACONTRAST_QUEUE_SIZE "$queue_size" &
         done
       done
@@ -274,9 +257,7 @@ test_time_adaptation() {
       for margin in ${margins[*]}; do
         for margin_e0 in ${margin_e0s[*]}; do
           for thr in ${thrs[*]}; do
-            i=$((i + 1))
-            wait_n
-            CUDA_VISIBLE_DEVICES="$GPUS" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+            python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
               --OPTIM_LR "$lr" --DEYO_MARGIN "$margin" --DEYO_MARGIN_E0 "$margin_e0" --DEYO_PLPD_THRESHOLD "$thr" --DEYO_FILTER_ENT "$filter_ent" &
           done
         done
