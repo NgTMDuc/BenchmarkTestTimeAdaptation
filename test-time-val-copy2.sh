@@ -1,8 +1,8 @@
 ### config
 # export CUDA_LAUNCH_BLOCKING=1
 
-DATASET="coloredmnist" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
-METHOD="eata"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
+DATASET="officehome" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
+METHOD="deyo"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
 MODEL_CONTINUAL='Fully' # Continual Fully
 GPUS=(0) #available gpus
 NUM_GPUS=${#GPUS[@]}
@@ -163,10 +163,10 @@ test_time_adaptation() {
             i=$((i + 1))
             wait_n
             if [ "$MODEL_CONTINUAL" == "Continual" ]; then
-              CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
+              CUDA_VISIBLE_DEVICES="$GPUS" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}_continual" \
                 --OPTIM_LR "$lr" --EATA_DM "$dm" --EATA_FISHER_ALPHA "$fisher_alpha" --MODEL_CONTINUAL "$MODEL_CONTINUAL" --EATA_E_MARGIN_COE "$em_coe"&
             else
-              CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+              CUDA_VISIBLE_DEVICES="$GPUS" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
                 --OPTIM_LR "$lr" --EATA_DM "$dm" --EATA_FISHER_ALPHA "$fisher_alpha" --MODEL_CONTINUAL "$MODEL_CONTINUAL" --EATA_E_MARGIN_COE "$em_coe"&
             fi
           done
