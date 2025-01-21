@@ -33,6 +33,7 @@ cfg = _C
 
 # Setting - see README.md for more information
 _C.bad = False
+_C.propose= True
 # Data directory_
 _C.DATA_DIR = "../DATA/"
 
@@ -65,7 +66,7 @@ _C.WORKERS = 4
 _C.MODEL = CfgNode()
 
 # Check https://github.com/RobustBench/robustbench or https://pytorch.org/vision/0.14/models.html for available models
-_C.MODEL.ARCH = 'resnet50-bn'
+_C.MODEL.ARCH = 'resnet18-bn'
 
 # Type of pre-trained weights for torchvision models. See: https://pytorch.org/vision/0.14/models.html
 _C.MODEL.WEIGHTS = "IMAGENET1K_V1"
@@ -82,9 +83,9 @@ _C.MODEL.CONTINUAL = 'Fully'
 _C.CORRUPTION = CfgNode()
 
 # Dataset for evaluation
-_C.CORRUPTION.DATASET = 'waterbirds'
+_C.CORRUPTION.DATASET = 'coloredMNIST'
 
-_C.CORRUPTION.SOURCE_DATASET = 'waterbirds'
+_C.CORRUPTION.SOURCE_DATASET = 'coloredMNIST'
 
 _C.CORRUPTION.SOURCE_DOMAIN = 'origin'
 _C.CORRUPTION.SOURCE_DOMAINS = ['origin']
@@ -229,7 +230,7 @@ _C.DEYO.FILTER_ENT = 1
 _C.DEYO.FILTER_PLDPD = 1
 _C.DEYO.REWEIGHT_ENT = 1
 _C.DEYO.REWEIGHT_PLPD = 1
-_C.DEYO.PLPD_THRESHOLD = 0.2
+_C.DEYO.PLPD_THRESHOLD = 0.5
 _C.DEYO.AUG_TYPE = "patch"
 _C.DEYO.OCCLUSION_SIZE = 112
 _C.DEYO.ROW_START = 56
@@ -312,9 +313,10 @@ class EDA(nn.Module):
         
         self.device = next(self.model.module.parameters()).device
         # self.decode = self.model.children()[0:4]
-        self.decoder1 = self.model.children()[0:6]
-        self.decoder2 = self.model.children()[6:9]
-        self.fc = self.model.children()[9]
+        print(len(list(self.model.module.children())))
+        self.decoder1 = nn.Sequential(*list(self.model.module.children())[0:6])
+        self.decoder2 = nn.Sequential(*list(self.model.module.children())[6:9])
+        self.fc = list(self.model.module.children())[9]
 
     def get_style(self, x):
         mu = x.mean(dim = [2, 3], keepdim = False)
@@ -335,7 +337,6 @@ class EDA(nn.Module):
     def get_filter(self, x):
         with torch.no_grad():
             feature_ori = self.decoder1(x)
-        
         mean, std = self.get_style(feature_ori)
 
         sqrtvar_mu = self.sqrtvar(mean)
@@ -346,16 +347,17 @@ class EDA(nn.Module):
 
         norms = (feature_ori - mean.reshape(feature_ori.shape[0],feature_ori.shape[1],1,1))/std.reshape(feature_ori.shape[0],feature_ori.shape[1],1,1)
         x_trans = norms * gamma.reshape(feature_ori.shape[0],feature_ori.shape[1],1,1) + beta.reshape(feature_ori.shape[0],feature_ori.shape[1],1,1)
+        # print(self.decoder2(feature_ori).shape)
         with torch.no_grad():
-            output_ori = self.fc(self.decoder2(feature_ori)).softmax(1)
-            output_aug = self.fc(self.decoder2(x_trans)).softmax(1)
+            output_ori = self.fc(self.decoder2(feature_ori).view(feature_ori.size(0), -1)).softmax(1)
+            output_aug = self.fc(self.decoder2(x_trans).view(x_trans.size(0), -1)).softmax(1)
         
         predictions = torch.argmax(output_ori, dim=1)
         plpd_trans = (torch.gather(output_ori, dim = 1, index = predictions.reshape(-1, 1)) - torch.gather(output_aug, dim = 1, index = predictions.reshape(-1, 1))) 
         plpd_trans = plpd_trans.reshape(-1).cpu()
         all_below_threshold4 = torch.where(plpd_trans < self.args.DEYO.PLPD_THRESHOLD/2)
 
-        return all_below_threshold4
+        return all_below_threshold4, plpd_trans
 
     def forward(self, x):
         if self.episodic:
@@ -366,12 +368,12 @@ class EDA(nn.Module):
             filter0, plpd_trans = None, None
         for _ in range(self.steps):
             # filter0 = self.get_filter(x)
-            outputs, return_entropys, filter_ids_1, filter_ids_2, return_entropys, plpd = forward_and_adapt_deyo(x, 
+            outputs, return_entropys, filter_ids_1, filter_ids_2, plpd = forward_and_adapt_deyo(x, 
                                                                                                                  self.model, self.args, self.optimizer, 
                                                                                                                  self.deyo_margin, self.margin_e0, filter0, 
                                                                                                                  plpd_trans)
         
-        return outputs, return_entropys, filter_ids_1, filter_ids_2, return_entropys, plpd
+        return outputs, return_entropys, filter_ids_1, filter_ids_2, plpd
 
     def reset(self):
         if self.model_state is None or self.optimizer_state is None:
@@ -445,11 +447,13 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin, filte
     optimizer.zero_grad()
     entropys = softmax_entropy(outputs)
 
-    return_entropys = copy.deepcopy(entropys)
+    return_entropys = entropys.detach().clone()
+
     if args.DEYO.FILTER_ENT:
-        filter_ids_1 = torch.where((entropys < deyo_margin))
+        filter_ids_1 = torch.where((entropys < deyo_margin))[0]
     else:    
-        filter_ids_1 = torch.where((entropys <= math.log(1000)))
+        filter_ids_1 = torch.where((entropys <= math.log(1000)))[0]
+
     x_prime = x.detach()
     if args.DEYO.AUG_TYPE=='occ':
         first_mean = x_prime.view(x_prime.shape[0], x_prime.shape[1], -1).mean(dim=2)
@@ -481,31 +485,35 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin, filte
     plpd = plpd.reshape(-1)
 
     if args.DEYO.FILTER_PLDPD:
-        filter_ids_2 = torch.where(plpd > args.DEYO.PLPD_THRESHOLD)
+        filter_ids_2 = torch.where(plpd > args.DEYO.PLPD_THRESHOLD)[0]
     else:
-        filter_ids_2 = torch.where(plpd >= -2.0)
+        filter_ids_2 = torch.where(plpd >= -2.0)[0]
 
     if filter is None:
         combined = torch.cat([filter_ids_1, filter_ids_2])
     else:
-        combined = torch.cat([filter, filter_ids_1, filter_ids_2])
+        combined = torch.cat([filter[0].to(device), filter_ids_1, filter_ids_2])
     
     idx = torch.unique(combined)
+    # print(entropys.device)
+    # print(margin.device)
+    # print(args.DEYO.REWEIGHT_ENT) 
     if args.DEYO.REWEIGHT_ENT or args.DEYO.REWEIGHT_PLPD:
-        coeff = (args.DEYO.REWEIGHT_ENT * (1 / (torch.exp(((entropys.clone().detach()) - margin)))) +
-                 args.DEYO.REWEIGHT_PLPD * (1 / (torch.exp(-1. * plpd.clone().detach()))) + 
-                 1 * 1 / (torch.exp(plpd_trans.clone().detach() - 0.8))
+        coeff = (
+            args.DEYO.REWEIGHT_ENT * (1 / (torch.exp(((entropys.clone().detach()) - margin)))) +
+                 args.DEYO.REWEIGHT_PLPD * (1 / (torch.exp(-1. * plpd.clone().detach()))) 
+                 + 1 * 1 / (torch.exp(plpd_trans.to(device).clone().detach() - 0.8))
                 )            
         entropys = entropys.mul(coeff)
     loss = entropys[idx].mean(0)
 
     if args.bad:
         filter_bad = torch.where(plpd <= 0.5 * args.DEYO.PLPD_THRESHOLD)
-        entropys_backward = copy.deepcopy(entropys)[
-            torch.unique(torch.cat[filter_bad, filter_ids_1])
+        entropys_backward = entropys.clone().detach()[
+            torch.unique(torch.cat([filter_bad[0], filter_ids_1]))
             ]
-        plpd_backward = copy.deepcopy(plpd)[
-            torch.unique(torch.cat[filter_bad, filter_ids_1])
+        plpd_backward = plpd.clone().detach()[
+            torch.unique(torch.cat([filter_bad[0], filter_ids_1]))
             ]
 
         coeff1 = 0.5 * (1 / (torch.exp(((entropys_backward.clone().detach()) - margin))))
@@ -521,8 +529,8 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin, filte
     optimizer.zero_grad()
 
     del x_prime
-    del plpd
-
+    # del plpd
+    # print(plpd)
     return outputs, return_entropys, filter_ids_1, filter_ids_2, plpd
 
 
@@ -552,6 +560,16 @@ def setup_optimizer(params, cfg):
                          nesterov=cfg.OPTIM.NESTEROV)
     else:
         raise NotImplementedError
+# Recursive function to convert tensors in nested structures
+def convert_to_serializable(obj):
+    if isinstance(obj, torch.Tensor):
+        return obj.tolist()  # Convert tensor to list
+    elif isinstance(obj, dict):
+        return {k: convert_to_serializable(v) for k, v in obj.items()}  # Process nested dictionaries
+    elif isinstance(obj, list):
+        return [convert_to_serializable(v) for v in obj]  # Process lists
+    else:
+        return obj  # Return the object as-is if it's not a tensor
 if __name__ == "__main__":
     num_classes = get_num_classes(dataset_name = cfg.CORRUPTION.DATASET)
     base_model = load_model(model_name=cfg.MODEL.ARCH, 
@@ -559,15 +577,16 @@ if __name__ == "__main__":
                             domain=cfg.CORRUPTION.SOURCE_DOMAIN, 
                             cfg = cfg)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    base_model = torch.nn.DataParallel(base_model)
     base_model.to(device)
 
     model = EDA.configure_model(base_model)
     params, param_names = EDA.collect_params(model)
     optimizer = setup_optimizer(params, cfg)
     # optimizer = None 
-    model = DeYO(model, cfg, optimizer, steps = cfg.OPTIM.STEPS, episodic=cfg.MODEL.EPISODIC,
+    model = EDA(model, cfg, optimizer, steps = cfg.OPTIM.STEPS, episodic=cfg.MODEL.EPISODIC,
                       deyo_margin = math.log(num_classes) * cfg.DEYO.MARGIN,
-                      margin_e0 = math.log(num_classes) * cfg.DEYO.MARGIN_E0
+                      margin_e0 = cfg.DEYO.MARGIN_E0 #* math.log(num_classes) 
                       )
     
 
@@ -607,7 +626,7 @@ if __name__ == "__main__":
                     imgs, labels = data[0], data[1]
                     output, return_entropys, filter_ids_1, filter_ids_2, plpd = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
                     predictions = output.argmax(1)
-                    log_results[f"i"] = {
+                    log_results[f"{i}"] = {
                         "output": output,
                         "plpd": plpd,
                         "entropys": return_entropys,
@@ -617,6 +636,8 @@ if __name__ == "__main__":
                         "acc": (predictions == labels.to(device)).float().sum() / imgs.shape[0]
                     }
         break
-    with open(f"cfg.CORRUPTION.DATASET", "w") as fp:
+    log_results = convert_to_serializable(log_results)
+
+    with open(f"{cfg.CORRUPTION.DATASET}_{cfg.propose}_{cfg.bad}.json", "w") as fp:
         json.dump(log_results, fp)
     # return accs
