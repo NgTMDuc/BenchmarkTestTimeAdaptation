@@ -7,14 +7,16 @@ import torch.jit
 import torchvision
 import math
 import numpy as np
+import logging
 import matplotlib.pyplot as plt
 from einops import rearrange
 from datetime import datetime
 import numpy as np
+import json
 
 from src.methods import *
 from src.models.load_model import load_model
-from src.utils import get_accuracy, get_args
+from src.utils import get_accuracy, get_args, evaluate_model
 from src.utils.conf import cfg, load_cfg_fom_args, get_num_classes, get_domain_sequence
 import numpy as np
 import torch
@@ -30,7 +32,7 @@ cfg = _C
 # ---------------------------------- Misc options --------------------------- #
 
 # Setting - see README.md for more information
-_C.bad = True
+_C.bad = False
 # Data directory_
 _C.DATA_DIR = "../DATA/"
 
@@ -63,13 +65,13 @@ _C.WORKERS = 4
 _C.MODEL = CfgNode()
 
 # Check https://github.com/RobustBench/robustbench or https://pytorch.org/vision/0.14/models.html for available models
-_C.MODEL.ARCH = 'Standard'
+_C.MODEL.ARCH = 'resnet50-bn'
 
 # Type of pre-trained weights for torchvision models. See: https://pytorch.org/vision/0.14/models.html
 _C.MODEL.WEIGHTS = "IMAGENET1K_V1"
 
 # Inspect the cfgs directory to see all possibilities
-_C.MODEL.ADAPTATION = 'source'
+_C.MODEL.ADAPTATION = 'deyo'
 
 # Reset the model before every new batch
 _C.MODEL.EPISODIC = False
@@ -80,9 +82,9 @@ _C.MODEL.CONTINUAL = 'Fully'
 _C.CORRUPTION = CfgNode()
 
 # Dataset for evaluation
-_C.CORRUPTION.DATASET = 'cifar10_c'
+_C.CORRUPTION.DATASET = 'waterbirds'
 
-_C.CORRUPTION.SOURCE_DATASET = 'cifar10'
+_C.CORRUPTION.SOURCE_DATASET = 'waterbirds'
 
 _C.CORRUPTION.SOURCE_DOMAIN = 'origin'
 _C.CORRUPTION.SOURCE_DOMAINS = ['origin']
@@ -91,7 +93,7 @@ _C.CORRUPTION.TYPE = ['gaussian_noise', 'shot_noise', 'impulse_noise',
                       'defocus_blur', 'glass_blur', 'motion_blur', 'zoom_blur',
                       'snow', 'frost', 'fog', 'brightness', 'contrast',
                       'elastic_transform', 'pixelate', 'jpeg_compression']
-_C.CORRUPTION.SEVERITY = [5, 4, 3, 2, 1]
+_C.CORRUPTION.SEVERITY = [0]
 
 # Number of examples to evaluate (10000 for all samples in CIFAR-C)
 # For ImageNet-C, RobustBench loads a list containing 5000 samples.
@@ -448,11 +450,6 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin, filte
         filter_ids_1 = torch.where((entropys < deyo_margin))
     else:    
         filter_ids_1 = torch.where((entropys <= math.log(1000)))
-    # entropys = entropys[filter_ids_1]
-    # if len(entropys) == 0:
-        # return outputs
-    # 
-    # x_prime = x[filter_ids_1]
     x_prime = x.detach()
     if args.DEYO.AUG_TYPE=='occ':
         first_mean = x_prime.view(x_prime.shape[0], x_prime.shape[1], -1).mean(dim=2)
@@ -487,13 +484,7 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin, filte
         filter_ids_2 = torch.where(plpd > args.DEYO.PLPD_THRESHOLD)
     else:
         filter_ids_2 = torch.where(plpd >= -2.0)
-    # entropys = entropys[filter_ids_2]
-    
-    # if len(entropys) == 0:
-    #     del x_prime
-    #     del plpd
-    #     return outputs
-    # plpd = plpd[filter_ids_1][filter_ids_2]
+
     if filter is None:
         combined = torch.cat([filter_ids_1, filter_ids_2])
     else:
@@ -528,15 +519,11 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin, filte
     loss.backward()
     optimizer.step()
     optimizer.zero_grad()
-    # if len(entropys) != 0:
-    #     loss.backward()
-    #     optimizer.step()
-    # optimizer.zero_grad()
 
     del x_prime
     del plpd
 
-    return outputs, return_entropys, filter_ids_1, filter_ids_2, return_entropys, plpd
+    return outputs, return_entropys, filter_ids_1, filter_ids_2, plpd
 
 
 
@@ -550,7 +537,21 @@ def copy_model_and_optimizer(model, optimizer):
     model_state = deepcopy(model.state_dict())
     optimizer_state = deepcopy(optimizer.state_dict())
     return model_state, optimizer_state
-
+def setup_optimizer(params, cfg):
+    if cfg.OPTIM.METHOD == 'Adam':
+        return optim.Adam(params,
+                          lr=cfg.OPTIM.LR,
+                          betas=(cfg.OPTIM.BETA, 0.999),
+                          weight_decay=cfg.OPTIM.WD)
+    elif cfg.OPTIM.METHOD == 'SGD':
+        return optim.SGD(params,
+                         lr=cfg.OPTIM.LR,
+                         momentum=cfg.OPTIM.MOMENTUM,
+                         dampening=cfg.OPTIM.DAMPENING,
+                         weight_decay=cfg.OPTIM.WD,
+                         nesterov=cfg.OPTIM.NESTEROV)
+    else:
+        raise NotImplementedError
 if __name__ == "__main__":
     num_classes = get_num_classes(dataset_name = cfg.CORRUPTION.DATASET)
     base_model = load_model(model_name=cfg.MODEL.ARCH, 
@@ -562,15 +563,60 @@ if __name__ == "__main__":
 
     model = EDA.configure_model(base_model)
     params, param_names = EDA.collect_params(model)
-
-    optimizer = None 
+    optimizer = setup_optimizer(params, cfg)
+    # optimizer = None 
     model = DeYO(model, cfg, optimizer, steps = cfg.OPTIM.STEPS, episodic=cfg.MODEL.EPISODIC,
                       deyo_margin = math.log(num_classes) * cfg.DEYO.MARGIN,
                       margin_e0 = math.log(num_classes) * cfg.DEYO.MARGIN_E0
                       )
     
 
-    correct = 0 
-    sever
-    for i, data in enumerate(tqdm(dataloader)):
-        imgs, labels= data[0], data[1]
+    if cfg.CORRUPTION.DATASET in {"domainnet126", "officehome"}:
+        dom_names_all = get_domain_sequence(cfg.CORRUPTION.DATASET, cfg.CORRUPTION.SOURCE_DOMAIN)
+    else:
+        dom_names_all = cfg.CORRUPTION.TYPE
+    logger = logging.getLogger(__name__)
+    logger.info(f"Using the following domain sequence: {dom_names_all}")
+
+    dom_names_loop = dom_names_all
+    severities = cfg.CORRUPTION.SEVERITY
+    if cfg.CORRUPTION.DATASET in {"coloredMNIST", "waterbirds"}:
+        biased = True
+    # start evaluation
+    accs = []
+    biased = False
+    for i_dom, domain_name in enumerate(dom_names_loop):
+        try:
+            model.reset()
+            logger.info("resetting model")
+        except:
+            logger.warning("not resetting model")
+
+        for severity in severities:
+            log_results = {}
+            testset, test_loader = load_dataset(cfg.CORRUPTION.DATASET, cfg.DATA_DIR,
+                                                cfg.TEST.BATCH_SIZE,
+                                                split='all', domain=domain_name, level=severity,
+                                                adaptation=cfg.MODEL.ADAPTATION,
+                                                workers=min(cfg.TEST.NUM_WORKERS, os.cpu_count()),
+                                                ckpt=os.path.join(cfg.CKPT_DIR, 'Datasets'),
+                                                num_aug=cfg.TEST.N_AUGMENTATIONS)
+
+            for epoch in range(cfg.TEST.EPOCH):
+                for i, data in enumerate(tqdm(test_loader)):
+                    imgs, labels = data[0], data[1]
+                    output, return_entropys, filter_ids_1, filter_ids_2, plpd = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
+                    predictions = output.argmax(1)
+                    log_results[f"i"] = {
+                        "output": output,
+                        "plpd": plpd,
+                        "entropys": return_entropys,
+                        "filter_ent": filter_ids_1,
+                        "filter_plpd": filter_ids_2,
+                        "correct": predictions==labels.to(device),
+                        "acc": (predictions == labels.to(device)).float().sum() / imgs.shape[0]
+                    }
+        break
+    with open(f"cfg.CORRUPTION.DATASET", "w") as fp:
+        json.dump(log_results, fp)
+    # return accs
