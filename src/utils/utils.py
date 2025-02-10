@@ -291,7 +291,12 @@ def get_args():
     parser.add_argument('--DEYO_MARGIN_E0', default= None, type =float)
     parser.add_argument('--DEYO_PLPD_THRESHOLD', default= None, type =float)
     parser.add_argument('--DEYO_FILTER_ENT', default= 1, type =int)
-    
+
+    parser.add_argument("--PROPOSAL_NEW_MARGIN", default=None, type=float)
+    parser.add_argument("--PROPOSAL_NEW_MARGIN_E0", default=None, type=float)
+    parser.add_argument("--PROPOSAL_ALPHA", default=0.5, type = float)
+    parser.add_argument("--PROPOSAL_LAYER", default=1, type = int)
+
     parser.add_argument('--TEST_EPOCH', default=None, type=int)
     parser.add_argument('--SHOT_CLS_PAR', default=None, type=float)
     parser.add_argument('--SHOT_ENT_PAR', default=None, type=float)

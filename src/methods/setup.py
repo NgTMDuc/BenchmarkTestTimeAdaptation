@@ -14,6 +14,7 @@ from .norm import Norm
 from .sar import SAR
 from .tent import Tent
 from .deyo import DeYO
+from .negative_update import NU
 from ..models import *
 import random
 from ..utils.utils import split_up_model
@@ -321,3 +322,15 @@ def setup_deyo(model, cfg, num_classes):
                       )
     
     return deyo_model, param_names
+
+def setup_nu(model, cfg, num_classes):
+    model = NU.configure_model(model)
+    params, param_names = NU.collect_params(model)
+    optimizer = setup_optimizer(params, cfg)
+
+    model = NU(model, cfg, optimizer=optimizer, steps = cfg.OPTIM.STEPS, episodic = cfg.MODEL.EPISODIC,
+            deyo_margin = math.log(num_classes) * cfg.DEYO.MARGIN,
+            margin_e0 = math.log(num_classes) * cfg.DEYO.MARGIN_E0
+    )
+
+    return model, param_names

@@ -226,6 +226,22 @@ _C.DEYO.OCCLUSION_SIZE = 112
 _C.DEYO.ROW_START = 56
 _C.DEYO.COLUMN_START = 56
 _C.DEYO.PATCH_LEN = 4
+# ------------------------------- PROPOSAL options ---------------------------- #
+_C.PROPOSAL = CfgNode()
+
+_C.PROPOSAL.USE = True
+
+_C.PROPOSAL.BAD = True
+
+_C.PROPOSAL.NEW_MARGIN = 0.8
+
+_C.PROPOSAL.NEW_MARGIN_E0 = 0.8
+
+_C.PROPOSAL.BAD_MARGIN = 0.8
+
+_C.PROPOSAL.ALPHA = 0.5
+
+_C.PROPOSAL.LAYER = 1
 # ------------------------------- Source options ---------------------------- #
 _C.SOURCE = CfgNode()
 

@@ -18,14 +18,6 @@ def load_model(model_name, checkpoint_dir=None, domain=None, cfg = None):
         else:
             raise ValueError('No checkpoint path provided')
     elif model_name == 'resnet50':
-        # if cfg.CORRUPTION.DATASET == "waterbirds":
-        #     if checkpoint_dir is not None:
-        #         checkpoint_path = os.path.join(checkpoint_dir, "waterbirds_pretrained_model.pickle")
-        #         if not os.path.exists(checkpoint_path):
-        #             raise ValueError('No checkpoint found at {}'.format(checkpoint_path))
-        #         with open(checkpoint_path, "rb") as f:
-        #             model = pickle.load(f)
-        # else:
         model = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
     elif model_name == 'WideResNet':
         model = WideResNet()
@@ -36,15 +28,6 @@ def load_model(model_name, checkpoint_dir=None, domain=None, cfg = None):
             model.load_state_dict(torch.load(checkpoint_path))
         else:
             raise ValueError('No checkpoint path provided')
-    # elif 'domainnet126' == model_name:
-    #     # domain = model_name.split('_')[-1]
-    #     feature_extractor = models.domainnet126G(domain=domain, pretrained=True)
-    #     classifier = models.domainnet126C(domain=domain, pretrained=True)
-    #     model = torch.nn.Sequential(feature_extractor, classifier)
-    # elif 'officehome' == model_name:
-    #     feature_extractor = models.officehomeG(pretrained=True)
-    #     classifier = models.officehomeC(domain=domain, pretrained=True)
-    #     model = torch.nn.Sequential(feature_extractor, classifier)
     elif model_name == 'officehome_shot':
         model= OfficeHome_Shot()
         if checkpoint_dir is not None:

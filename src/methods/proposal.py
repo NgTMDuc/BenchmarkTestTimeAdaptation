@@ -108,4 +108,4 @@ def softmax_entropy(x: torch.Tensor) -> torch.Tensor:
     return -(x.softmax(1) * x.log_softmax(1)).sum(1)
 
 def forward_and_adapt(x, model, args, optimizer, marin, margin_e0):
-    
+    pass

@@ -66,7 +66,7 @@ _C.WORKERS = 4
 _C.MODEL = CfgNode()
 
 # Check https://github.com/RobustBench/robustbench or https://pytorch.org/vision/0.14/models.html for available models
-_C.MODEL.ARCH = 'resnet18-bn'
+_C.MODEL.ARCH = 'resnet50-bn'
 
 # Type of pre-trained weights for torchvision models. See: https://pytorch.org/vision/0.14/models.html
 _C.MODEL.WEIGHTS = "IMAGENET1K_V1"
@@ -83,9 +83,9 @@ _C.MODEL.CONTINUAL = 'Fully'
 _C.CORRUPTION = CfgNode()
 
 # Dataset for evaluation
-_C.CORRUPTION.DATASET = 'coloredMNIST'
+_C.CORRUPTION.DATASET = 'waterbirds'
 
-_C.CORRUPTION.SOURCE_DATASET = 'coloredMNIST'
+_C.CORRUPTION.SOURCE_DATASET = 'waterbirds'
 
 _C.CORRUPTION.SOURCE_DOMAIN = 'origin'
 _C.CORRUPTION.SOURCE_DOMAINS = ['origin']
@@ -355,7 +355,7 @@ class EDA(nn.Module):
         predictions = torch.argmax(output_ori, dim=1)
         plpd_trans = (torch.gather(output_ori, dim = 1, index = predictions.reshape(-1, 1)) - torch.gather(output_aug, dim = 1, index = predictions.reshape(-1, 1))) 
         plpd_trans = plpd_trans.reshape(-1).cpu()
-        all_below_threshold4 = torch.where(plpd_trans < self.args.DEYO.PLPD_THRESHOLD/2)
+        all_below_threshold4 = torch.where(plpd_trans < 0.9)
 
         return all_below_threshold4, plpd_trans
 
@@ -529,8 +529,6 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin, filte
     optimizer.zero_grad()
 
     del x_prime
-    # del plpd
-    # print(plpd)
     return outputs, return_entropys, filter_ids_1, filter_ids_2, plpd
 
 

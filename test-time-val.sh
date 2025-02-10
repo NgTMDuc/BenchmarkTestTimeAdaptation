@@ -1,13 +1,13 @@
 ### config
 # export CUDA_LAUNCH_BLOCKING=1
 
-DATASET="waterbirds" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
-METHOD="eata"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
+DATASET="cifar10_c" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
+METHOD="proposal"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
 MODEL_CONTINUAL='Fully' # Continual Fully
-GPUS=(0 1 2) #available gpus
-# NUM_GPUS=${#GPUS[@]}
-# NUM_MAX_JOB=$((NUM_GPUS))
-NUM_MAX_JOB=1
+GPUS=(0) #available gpus
+NUM_GPUS=${#GPUS[@]}
+NUM_MAX_JOB=$((NUM_GPUS))
+# NUM_MAX_JOB=1
 i=0
 #### Useful functions
 wait_n() {
@@ -281,6 +281,37 @@ test_time_adaptation() {
       done
     done
 
+  elif [ "$METHOD" == "proposal" ]; then
+    lrs=(0.00025 0.00125)
+    margins=(0.3 0.4 0.5 1)
+    margin_e0s=(0 0.2 0.4 1)
+    thrs=(-1 0 0.2 0.4)
+    new_margins=(0.5 0.6 0.7 0.8 0.9)
+    new_margins_e0=(0.5 0.6 0.7 0.8 0.9)
+    alphas=(0.5 0.6 0.7)
+    filter_ent=1
+    layers=(1 2 3)
+    for lr in ${lrs[*]}; do
+      for margin in ${margins[*]}; do
+        for margin_e0 in ${margin_e0s[*]}; do
+          for thr in ${thrs[*]}; do
+            for new_margin in ${new_margins[*]}; do
+              for new_margin_e0 in ${new_margins_e0[*]}; do
+                for alpha in ${alphas[*]}; do
+                  for layer in ${layers[*]}; do
+                    i=$((i + 1))
+                    wait_n
+                    # echo "$new_margin"
+                    CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
+                --OPTIM_LR "$lr" --DEYO_MARGIN "$margin" --DEYO_MARGIN_E0 "$margin_e0" --DEYO_PLPD_THRESHOLD "$thr" --DEYO_FILTER_ENT "$filter_ent"  --PROPOSAL_NEW_MARGIN "$new_margin"  --PROPOSAL_NEW_MARGIN_E0 "$new_margin_e0"  --PROPOSAL_ALPHA "$alpha" --PROPOSAL_LAYER "$layer"&
+                done
+              done
+            done
+          done
+        done
+      done
+    done
+  done
   fi
 
 }

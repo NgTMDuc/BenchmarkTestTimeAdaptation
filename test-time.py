@@ -20,7 +20,7 @@ def evaluate(cfg):
                             domain=cfg.CORRUPTION.SOURCE_DOMAIN, 
                             cfg = cfg)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    base_model = nn.DataParallel(base_model)
+    # base_model = nn.DataParallel(base_model)
     base_model.to(device)
 
     logger.info(f"Setting up test-time adaptation method: {cfg.MODEL.ADAPTATION.upper()}")
@@ -48,6 +48,8 @@ def evaluate(cfg):
         model = setup_sar(base_model, cfg, num_classes)
     elif cfg.MODEL.ADAPTATION == "deyo":
         model, param_names = setup_deyo(base_model, cfg, num_classes)
+    elif cfg.MODEL.ADAPTATION == "proposal":
+        model, param_names = setup_nu(base_model, cfg, num_classes)
     else:
         raise ValueError(f"Adaptation method '{cfg.MODEL.ADAPTATION}' is not supported!")
 
