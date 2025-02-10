@@ -217,7 +217,7 @@ _C.DEYO = CfgNode()
 _C.DEYO.MARGIN = 0.5
 _C.DEYO.MARGIN_E0 = 0.4
 _C.DEYO.FILTER_ENT = 1
-_C.DEYO.FILTER_PLDPD = 1
+_C.DEYO.FILTER_PLPD = 1
 _C.DEYO.REWEIGHT_ENT = 1
 _C.DEYO.REWEIGHT_PLPD = 1
 _C.DEYO.PLPD_THRESHOLD = 0.2
@@ -229,9 +229,9 @@ _C.DEYO.PATCH_LEN = 4
 # ------------------------------- PROPOSAL options ---------------------------- #
 _C.PROPOSAL = CfgNode()
 
-_C.PROPOSAL.USE = True
+# _C.PROPOSAL.USE = True
 
-_C.PROPOSAL.BAD = True
+_C.PROPOSAL.USE_BAD = True
 
 _C.PROPOSAL.NEW_MARGIN = 0.8
 

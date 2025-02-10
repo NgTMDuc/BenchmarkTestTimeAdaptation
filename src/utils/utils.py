@@ -291,6 +291,7 @@ def get_args():
     parser.add_argument('--DEYO_MARGIN_E0', default= None, type =float)
     parser.add_argument('--DEYO_PLPD_THRESHOLD', default= None, type =float)
     parser.add_argument('--DEYO_FILTER_ENT', default= 1, type =int)
+    parser.add_argument('--DEYO_FILTER_PLPD', default= 1, type =int)
 
     parser.add_argument("--PROPOSAL_NEW_MARGIN", default=None, type=float)
     parser.add_argument("--PROPOSAL_NEW_MARGIN_E0", default=None, type=float)

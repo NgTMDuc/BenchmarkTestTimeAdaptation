@@ -20,6 +20,7 @@ def evaluate(cfg):
                             domain=cfg.CORRUPTION.SOURCE_DOMAIN, 
                             cfg = cfg)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
     # base_model = nn.DataParallel(base_model)
     base_model.to(device)
 

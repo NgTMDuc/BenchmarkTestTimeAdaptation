@@ -72,7 +72,7 @@ class WideResNet(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.fc = nn.Linear(nChannels[3], num_classes, bias=bias_last)
         self.nChannels = nChannels[3]
-
+        # self.avgpool = nn.AvgPool2d
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels

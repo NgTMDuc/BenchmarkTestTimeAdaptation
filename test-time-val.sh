@@ -4,7 +4,7 @@
 DATASET="cifar10_c" # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_convnet waterbirds coloredmnist
 METHOD="proposal"          # source norm_test memo eata cotta tent t3a norm_alpha lame adacontrast norm_alpha64
 MODEL_CONTINUAL='Fully' # Continual Fully
-GPUS=(0) #available gpus
+GPUS=(2) #available gpus
 NUM_GPUS=${#GPUS[@]}
 NUM_MAX_JOB=$((NUM_GPUS))
 # NUM_MAX_JOB=1
@@ -303,7 +303,7 @@ test_time_adaptation() {
                     wait_n
                     # echo "$new_margin"
                     CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
-                --OPTIM_LR "$lr" --DEYO_MARGIN "$margin" --DEYO_MARGIN_E0 "$margin_e0" --DEYO_PLPD_THRESHOLD "$thr" --DEYO_FILTER_ENT "$filter_ent"  --PROPOSAL_NEW_MARGIN "$new_margin"  --PROPOSAL_NEW_MARGIN_E0 "$new_margin_e0"  --PROPOSAL_ALPHA "$alpha" --PROPOSAL_LAYER "$layer"&
+                    --OPTIM_LR "$lr" --DEYO_MARGIN "$margin" --DEYO_MARGIN_E0 "$margin_e0" --DEYO_PLPD_THRESHOLD "$thr" --DEYO_FILTER_ENT "$filter_ent"  --PROPOSAL_NEW_MARGIN "$new_margin"  --PROPOSAL_NEW_MARGIN_E0 "$new_margin_e0"  --PROPOSAL_ALPHA "$alpha" --PROPOSAL_LAYER "$layer"&
                 done
               done
             done

@@ -7,6 +7,7 @@ import torchvision
 import math
 import numpy as np 
 import matplotlib.pyplot as plt
+import torch.nn.functional as F
 from einops import rearrange
 
 class NU(nn.Module):
@@ -31,7 +32,7 @@ class NU(nn.Module):
     
     def split_model(self):
         fc = list(self.model.children())[-1]
-        print(list(self.model.children())[0])
+        # print(list(self.model.children())[0])
         if self.args.MODEL.ARCH == "Hendrycks2020AugMix_ResNeXt":
             embed = nn.Sequential(*list(self.model.children())[0:2])
             blocks = nn.Sequential(*list(self.model.children())[2:5])
@@ -40,7 +41,7 @@ class NU(nn.Module):
         elif self.args.MODEL.ARCH == "WideResNet":
             embed = nn.Sequential(list(self.model.children())[0])
             blocks = nn.Sequential(*list(self.model.children())[1:4])
-            post_layer = nn.Sequential(*list(self.model.children())[4:6])
+            post_layer = nn.Sequential(*list(self.model.children())[4:5])
 
         # print(blocks)
         n_blocks = len(blocks)
@@ -50,9 +51,10 @@ class NU(nn.Module):
         if self.args.PROPOSAL.LAYER == n_blocks:
             encoder2 = nn.Identity()
         else:
-            encoder2 = blocks[self.args.PROPOSAL.LAYER:]
+            encoder2 = blocks[self.args.PROPOSAL.LAYER :]
 
         return embed, encoder1, encoder2, post_layer, fc
+    
     def get_filter(self, x):
         with torch.no_grad():
             embedding = self.embed(x)
@@ -66,9 +68,16 @@ class NU(nn.Module):
         gamma = self._reparameterize(std, sqrtvar_std)
         norms = (feature_ori - mean.reshape(feature_ori.shape[0],feature_ori.shape[1],1,1))/std.reshape(feature_ori.shape[0],feature_ori.shape[1],1,1)
         x_trans = norms * gamma.reshape(feature_ori.shape[0],feature_ori.shape[1],1,1) + beta.reshape(feature_ori.shape[0],feature_ori.shape[1],1,1)
+        # print(feature_ori.shape)
+        feature_ori = self.post_layer(self.encoder2(feature_ori))
+        x_trans = self.post_layer(self.encoder2(x_trans))    
+        # print(feature_ori.size(0))
+        if self.args.MODEL.ADAPTATION == "proposal":
+            feature_ori = F.avg_pool2d(feature_ori, 8)
+            x_trans = F.avg_pool2d(x_trans, 8)
         with torch.no_grad():
-            output_ori = self.fc(self.decoder2(feature_ori).view(feature_ori.size(0), -1)).softmax(1)
-            output_aug = self.fc(self.decoder2(x_trans).view(x_trans.size(0), -1)).softmax(1)
+            output_ori = self.fc(feature_ori.view(feature_ori.size(0), -1)).softmax(1)
+            output_aug = self.fc(x_trans.view(feature_ori.size(0), -1)).softmax(1)
         
         predictions = torch.argmax(output_ori, dim=1)
         plpd_trans = (torch.gather(output_ori, dim = 1, index = predictions.reshape(-1, 1)) - torch.gather(output_aug, dim = 1, index = predictions.reshape(-1, 1))) 
@@ -142,7 +151,7 @@ class NU(nn.Module):
             coeff = (
                 self.args.DEYO.REWEIGHT_ENT * (1 / (torch.exp(((entropys.clone().detach()) - self.margin_e0)))) + 
                 self.args.DEYO.REWEIGHT_PLPD * (1 / (torch.exp(-1. * plpd.clone().detach()))) + 
-                1 / (torch.exp(plpd_new.to(self.deviec).clone().detach() - self.args.PROPOSAL.NEW_MARGIN_E0))
+                1 / (torch.exp(plpd_new.to(self.device).clone().detach() - self.args.PROPOSAL.NEW_MARGIN_E0))
             )
 
             entropys = entropys.mul(coeff)
