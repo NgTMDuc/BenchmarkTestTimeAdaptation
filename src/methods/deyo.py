@@ -143,7 +143,7 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin):
     plpd = torch.gather(prob_outputs, dim=1, index=cls1.reshape(-1,1)) - torch.gather(prob_outputs_prime, dim=1, index=cls1.reshape(-1,1))
     plpd = plpd.reshape(-1)
 
-    if args.DEYO.FILTER_PLDPD:
+    if args.DEYO.FILTER_PLPD:
         filter_ids_2 = torch.where(plpd > args.DEYO.PLPD_THRESHOLD)
     else:
         filter_ids_2 = torch.where(plpd >= -2.0)

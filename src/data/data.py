@@ -363,3 +363,4 @@ def load_dataset_idx(dataset, root, batch_size=64, workers=4, split='train', ada
     data_loader = torch.utils.data.DataLoader(dataset_idx, batch_size=batch_size, shuffle=False, num_workers=workers,
                                               drop_last=False)
     return dataset_idx, data_loader
+

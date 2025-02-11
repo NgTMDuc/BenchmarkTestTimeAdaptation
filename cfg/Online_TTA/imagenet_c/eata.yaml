@@ -1,12 +1,12 @@
 MODEL:
   ADAPTATION: eata
-  ARCH: WideResNet
+  ARCH: vit
 TEST:
   BATCH_SIZE: 64
 CORRUPTION:
-  SOURCE_DATASET: cifar10
+  DATASET: imagenet_c
+  SOURCE_DATASET: imagenet
   SOURCE_DOMAIN: origin
-  DATASET: cifar10_c
   SEVERITY:
     - 5
   TYPE:
@@ -31,6 +31,6 @@ OPTIM:
   MOMENTUM: 0.9
   WD: 0.0
   NESTEROV: False
-# EATA:
-  # FISHER_ALPHA: 1
-  # D_MARGIN: 0.4
+EATA:
+  FISHER_ALPHA: 2000
+  D_MARGIN: 0.05

@@ -43,7 +43,11 @@ class NU(nn.Module):
             blocks = nn.Sequential(*list(self.model.children())[1:4])
             post_layer = nn.Sequential(*list(self.model.children())[4:5])
 
-        # print(blocks)
+        elif self.args.MODEL.ARCH == "vit":
+            embed = nn.Sequential(*list(self.model.children())[0:4])
+            blocks = nn.Sequential(*list(list(self.model.children())[4].children()))
+            post_layer = nn.Sequential(*list(self.model.children())[5:-1])
+
         n_blocks = len(blocks)
         assert n_blocks >= self.args.PROPOSAL.LAYER, f"There are only {n_blocks} blocks in model"
         encoder1 = blocks[:self.args.PROPOSAL.LAYER]
@@ -59,22 +63,32 @@ class NU(nn.Module):
         with torch.no_grad():
             embedding = self.embed(x)
             feature_ori = self.encoder1(embedding)
+        # print(feature_ori.shape)
         mean, std = self.get_style(feature_ori)
-
+        # print(mean.shape)
         sqrtvar_mu = self.sqrtvar(mean)
         sqrtvar_std = self.sqrtvar(std)
 
         beta = self._reparameterize(mean, sqrtvar_mu)
         gamma = self._reparameterize(std, sqrtvar_std)
-        norms = (feature_ori - mean.reshape(feature_ori.shape[0],feature_ori.shape[1],1,1))/std.reshape(feature_ori.shape[0],feature_ori.shape[1],1,1)
-        x_trans = norms * gamma.reshape(feature_ori.shape[0],feature_ori.shape[1],1,1) + beta.reshape(feature_ori.shape[0],feature_ori.shape[1],1,1)
-        # print(feature_ori.shape)
-        feature_ori = self.post_layer(self.encoder2(feature_ori))
-        x_trans = self.post_layer(self.encoder2(x_trans))    
-        # print(feature_ori.size(0))
-        if self.args.MODEL.ADAPTATION == "proposal":
+        num_dims = feature_ori.dim()
+        shape = (feature_ori.shape[0], feature_ori.shape[1]) + (1,) * (num_dims - 2)
+        norms = (feature_ori - mean.reshape(shape)) / std.reshape(shape)
+        x_trans = norms * gamma.reshape(shape) + beta.reshape(shape)
+        feature_ori = self.encoder2(feature_ori)
+        x_trans = self.encoder2(x_trans)
+        if self.args.MODEL.ARCH == "vit":
+            feature_ori = self.model.pool(feature_ori)
+            x_trans = self.model.pool(x_trans)
+
+        feature_ori = self.post_layer(feature_ori)
+        x_trans = self.post_layer(x_trans) 
+        
+        if self.args.MODEL.ARCH == "WideResNet":
             feature_ori = F.avg_pool2d(feature_ori, 8)
             x_trans = F.avg_pool2d(x_trans, 8)
+        
+        
         with torch.no_grad():
             output_ori = self.fc(feature_ori.view(feature_ori.size(0), -1)).softmax(1)
             output_aug = self.fc(x_trans.view(feature_ori.size(0), -1)).softmax(1)
@@ -180,9 +194,14 @@ class NU(nn.Module):
 
 
     def get_style(self, x):
-        mu = x.mean(dim = [2, 3], keepdim = False)
-        var = x.var(dim = [2, 3], keepdim = False)
-        var = (var + 1e-6).sqrt()
+        if len(x.shape) == 4:
+            mu = x.mean(dim = [2, 3], keepdim = False)
+            var = x.var(dim = [2, 3], keepdim = False)
+            var = (var + 1e-6).sqrt()
+        elif len(x.shape) == 3:
+            mu = x.mean(dim = 2, keepdim = False)
+            var = x.var(dim = 2, keepdim = False)
+            var = (var + 1e-6).sqrt()
         return mu, var
     
     def sqrtvar(self, x):
