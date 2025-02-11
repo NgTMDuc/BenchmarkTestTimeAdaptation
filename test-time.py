@@ -21,6 +21,7 @@ def evaluate(cfg):
                             cfg = cfg)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # base_model = nn.DataParallel(base_model)
+    print(device)
     base_model.to(device)
 
     logger.info(f"Setting up test-time adaptation method: {cfg.MODEL.ADAPTATION.upper()}")

@@ -1,10 +1,12 @@
 MODEL:
-  ADAPTATION: tent
-  ARCH: vit
+  ADAPTATION: proposal
+  ARCH: Hendrycks2020AugMix_ResNeXt
 TEST:
   BATCH_SIZE: 64
 CORRUPTION:
-  DATASET: imagenet_c
+  DATASET: cifar100_c
+  SOURCE_DATASET: cifar100
+  SOURCE_DOMAIN: origin
   SEVERITY:
     - 5
   TYPE:
@@ -23,9 +25,3 @@ CORRUPTION:
     - elastic_transform
     - pixelate
     - jpeg_compression
-OPTIM:
-  METHOD: SGD
-  LR: 0.00025
-  MOMENTUM: 0.9
-  WD: 0.0
-  NESTEROV: False
