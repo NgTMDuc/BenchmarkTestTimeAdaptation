@@ -301,7 +301,6 @@ test_time_adaptation() {
                   for layer in ${layers[*]}; do
                     i=$((i + 1))
                     wait_n
-                    # echo "$new_margin"
                     CUDA_VISIBLE_DEVICES="${GPUS[i % ${NUM_GPUS}]}" python test-time-validation.py --cfg "cfgs/Online_TTA/${DATASET}/${METHOD}.yaml" --output_dir "test-time-validation/${DATASET}/${METHOD}" \
                     --OPTIM_LR "$lr" --DEYO_MARGIN "$margin" --DEYO_MARGIN_E0 "$margin_e0" --DEYO_PLPD_THRESHOLD "$thr" --DEYO_FILTER_ENT "$filter_ent"  --PROPOSAL_NEW_MARGIN "$new_margin"  --PROPOSAL_NEW_MARGIN_E0 "$new_margin_e0"  --PROPOSAL_ALPHA "$alpha" --PROPOSAL_LAYER "$layer"&
                 done

@@ -134,6 +134,7 @@ def setup_shot_optimizer(model, cfg):
 
 def setup_source(model, cfg=None):
     """Set up BN--0 which uses the source model without any adaptation."""
+    model = Tent.configure_model(model)
     model.eval()
     return model, None
 

@@ -1,13 +1,10 @@
-MODEL:
-  ADAPTATION: sar
-  ARCH: WideResNet
-TEST:
-  BATCH_SIZE: 64
 CORRUPTION:
-  SOURCE_DATASET: cifar10
-  SOURCE_DOMAIN: origin
   DATASET: cifar10_c
   SEVERITY:
+    - 1
+    - 2
+    - 3
+    - 4
     - 5
   TYPE:
     - gaussian_noise
@@ -25,11 +22,13 @@ CORRUPTION:
     - elastic_transform
     - pixelate
     - jpeg_compression
-OPTIM:
-  METHOD: SGD
-  LR: 0.00025
-  MOMENTUM: 0.9
-  WD: 0.0
-  NESTEROV: False
+  
+MODEL:
+  ADAPTATION: sar
+  ARCH: WideResNet
+TEST:
+  BATCH_SIZE: 64
+
 SAR:
-  RESET_CONSTANT: 0.05
+  E_MARGIN_COE: 0.4
+  RESET_CONSTANT: 0.005 

@@ -1,10 +1,6 @@
 CORRUPTION:
   DATASET: cifar10_c
   SEVERITY:
-    - 1
-    - 2
-    - 3
-    - 4
     - 5
   TYPE:
     - gaussian_noise
@@ -22,14 +18,29 @@ CORRUPTION:
     - elastic_transform
     - pixelate
     - jpeg_compression
-  
+
+OPTIM:
+  METHOD: SGD
+  LR: 0.0025
+
 MODEL:
-  ADAPTATION: tent
+  ADAPTATION: proposal
   ARCH: WideResNet
 TEST:
   BATCH_SIZE: 64
 
-OPTIM:
-  METHOD: SGD
-  LR: 0.00025
+DEYO:
+  FILTER_ENT: 1
+  FILTER_PLPD: 1
+  MARGIN: 0.5
+  MARGIN_E0: 0.4
+  PLPD_THRESHOLD: 0.2
+
+PROPOSAL:
+  LAYER: 1
+  NEW_MARGIN: 0.4
+  NEW_MARGIN_E0: 0.0
+
+  BAD_MARGIN: 0.9
   
+  ALPHA: 0.5

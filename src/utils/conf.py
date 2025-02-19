@@ -214,22 +214,35 @@ _C.EATA.D_MARGIN = 0.05
 _C.EATA.E_MARGIN_COE = 0.4
 # ------------------------------- DEYO options ---------------------------- #
 _C.DEYO = CfgNode()
+
 _C.DEYO.MARGIN = 0.5
+
 _C.DEYO.MARGIN_E0 = 0.4
+
 _C.DEYO.FILTER_ENT = 1
+
 _C.DEYO.FILTER_PLPD = 1
+
 _C.DEYO.REWEIGHT_ENT = 1
+
 _C.DEYO.REWEIGHT_PLPD = 1
+
 _C.DEYO.PLPD_THRESHOLD = 0.2
+
 _C.DEYO.AUG_TYPE = "patch"
+
 _C.DEYO.OCCLUSION_SIZE = 112
+
 _C.DEYO.ROW_START = 56
+
 _C.DEYO.COLUMN_START = 56
+
 _C.DEYO.PATCH_LEN = 4
 # ------------------------------- PROPOSAL options ---------------------------- #
+#NOTE: Build base on DEYO
 _C.PROPOSAL = CfgNode()
 
-# _C.PROPOSAL.USE = True
+_C.PROPOSAL.LAYER = 1
 
 _C.PROPOSAL.USE_BAD = True
 
@@ -241,7 +254,6 @@ _C.PROPOSAL.BAD_MARGIN = 0.8
 
 _C.PROPOSAL.ALPHA = 0.5
 
-_C.PROPOSAL.LAYER = 1
 # ------------------------------- Source options ---------------------------- #
 _C.SOURCE = CfgNode()
 

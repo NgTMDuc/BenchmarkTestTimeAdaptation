@@ -11,7 +11,9 @@ import torch.nn.functional as F
 from einops import rearrange
 
 class NU(nn.Module):
-    def __init__(self, model, args, optimizer, steps = 1, episodic = False, deyo_margin = 0.5 * math.log(1000), margin_e0 = 0.4 * math.log(1000)):
+    def __init__(self, model, args, optimizer, 
+                 steps = 1, episodic = False, deyo_margin = 0.5 * math.log(1000), 
+                 margin_e0 = 0.4 * math.log(1000)):
         super().__init__()
         self.model = model
         self.args = args
@@ -28,11 +30,10 @@ class NU(nn.Module):
         self.device =  next(self.model.parameters()).device
 
         self.embed, self.encoder1, self.encoder2, self.post_layer ,self.fc = self.split_model()
-        # self.split_model()
     
     def split_model(self):
         fc = list(self.model.children())[-1]
-        # print(list(self.model.children())[0])
+
         if self.args.MODEL.ARCH == "Hendrycks2020AugMix_ResNeXt":
             embed = nn.Sequential(*list(self.model.children())[0:2])
             blocks = nn.Sequential(*list(self.model.children())[2:5])
@@ -47,6 +48,11 @@ class NU(nn.Module):
             embed = nn.Sequential(*list(self.model.children())[0:4])
             blocks = nn.Sequential(*list(list(self.model.children())[4].children()))
             post_layer = nn.Sequential(*list(self.model.children())[5:-1])
+
+        elif self.args.MODEL.ARCH == "officehome_shot" or self.args.MODEL.ARCH == "domainnet126_shot":
+            embed = nn.Sequential(*list(self.model.netF.children())[0:4])
+            blocks = nn.Sequential(*list(self.model.netF.children())[4:8])
+            post_layer = nn.Sequential((*list(self.model.netF.children())[8:], self.model.netB))
 
         n_blocks = len(blocks)
         assert n_blocks >= self.args.PROPOSAL.LAYER, f"There are only {n_blocks} blocks in model"
@@ -63,9 +69,9 @@ class NU(nn.Module):
         with torch.no_grad():
             embedding = self.embed(x)
             feature_ori = self.encoder1(embedding)
-        # print(feature_ori.shape)
+        
         mean, std = self.get_style(feature_ori)
-        # print(mean.shape)
+        
         sqrtvar_mu = self.sqrtvar(mean)
         sqrtvar_std = self.sqrtvar(std)
 
@@ -77,6 +83,7 @@ class NU(nn.Module):
         x_trans = norms * gamma.reshape(shape) + beta.reshape(shape)
         feature_ori = self.encoder2(feature_ori)
         x_trans = self.encoder2(x_trans)
+
         if self.args.MODEL.ARCH == "vit":
             feature_ori = self.model.pool(feature_ori)
             x_trans = self.model.pool(x_trans)

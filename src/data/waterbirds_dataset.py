@@ -20,7 +20,6 @@ class WaterbirdsDataset(Dataset):
 
     def __len__(self):
         return self.num_data
-        # return len(self.dataset)
 
     def __getitem__(self,index):
         if(index >= self.num_data):

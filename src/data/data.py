@@ -340,6 +340,7 @@ def load_dataset(dataset, root, batch_size=64, workers=4, split='train', adaptat
     elif dataset == 'cifar100_c':
         return load_cifar100_c(root=root, corruption=domain, level=level, batch_size=batch_size, workers=workers,
                                transforms=transforms, ckpt=ckpt)
+    
     elif dataset == 'imagenet_c':
         return load_imagenet_c(root=os.path.join(root, 'ImageNet-C'), batch_size=batch_size, corruption=domain,
                                level=level, workers=workers,
@@ -348,10 +349,11 @@ def load_dataset(dataset, root, batch_size=64, workers=4, split='train', adaptat
         return load_officehome(root=root, domain=domain, batch_size=batch_size, workers=workers, split=split,
                                transforms=transforms)
     elif dataset == "coloredMNIST":
-        # print(split)
         return load_coloredMNIST(root=root, batch_size=batch_size, workers=workers, split=split, transform=transforms)
+    
     elif dataset == "waterbirds":
         return load_waterbirds(root = root, batch_size=64, workers=workers, split=split, transform=transforms)
+    
     else:
         raise ValueError('Unknown dataset: {}'.format(dataset))
 

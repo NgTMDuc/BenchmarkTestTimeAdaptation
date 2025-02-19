@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.weight_norm import WeightNorm
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+# device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
 def mean(items):
@@ -133,22 +133,19 @@ def get_accuracy(model: torch.nn.Module,
                  device: torch.device = None):
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # model = nn.DataParallel(model)
+    
     correct = 0.
-    # with torch.no_grad():
     for i, data in enumerate(tqdm(data_loader)):
         imgs, labels = data[0], data[1]
         output = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
         predictions = output.argmax(1)
         correct += (predictions == labels.to(device)).float().sum()
-            # pass
 
     accuracy = correct.item() / len(data_loader.dataset)
     return accuracy
 
 def evaluate_model(model: torch.nn.Module,
                    data_loader: torch.utils.data.DataLoader,
-                #    cfg,
                    device: torch.device = None,
                    ):
     if device is None:
