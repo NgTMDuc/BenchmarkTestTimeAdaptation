@@ -1,7 +1,7 @@
 CORRUPTION:
   DATASET: cifar10_c
   SEVERITY:
-    - 5
+    - 1
   TYPE:
     - gaussian_noise
     - shot_noise

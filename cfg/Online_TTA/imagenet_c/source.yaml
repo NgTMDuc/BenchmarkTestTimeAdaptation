@@ -1,11 +1,7 @@
 CORRUPTION:
-  DATASET: cifar10_c
+  DATASET: imagenet_c
   SEVERITY:
     - 1
-    # - 2
-    # - 3
-    # - 4
-    # - 5
   TYPE:
     - gaussian_noise
     - shot_noise
@@ -22,14 +18,8 @@ CORRUPTION:
     - elastic_transform
     - pixelate
     - jpeg_compression
-  
 MODEL:
-  ADAPTATION: tent
-  ARCH: WideResNet
+  ADAPTATION: source
+  ARCH: vit
 TEST:
   BATCH_SIZE: 64
-
-OPTIM:
-  METHOD: SGD
-  LR: 0.00025
-  

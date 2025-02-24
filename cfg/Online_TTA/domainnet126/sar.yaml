@@ -1,0 +1,33 @@
+CORRUPTION:
+  DATASET: officehome
+  SOURCE_DATASET: officehome
+CORRUPTION:
+  DATASET: domainnet126
+  SOURCE_DATASET: domainnet126
+  SOURCE_DOMAIN: clipart
+  SOURCE_DOMAINS: 
+    - clipart
+    - painting
+    - sketch
+    - real
+  
+  SEVERITY:
+    - 1
+  TYPE:
+    - real
+    - painting
+    - sketch
+TEST:
+  BATCH_SIZE: 64
+
+MODEL:
+  ADAPTATION: sar
+  ARCH: domainnet126_shot
+OPTIM:
+  METHOD: SGD
+  LR: 0.0025
+
+SAR:
+  E_MARGIN_COE: 0.4
+  RESET_CONSTANT: 0.005
+  

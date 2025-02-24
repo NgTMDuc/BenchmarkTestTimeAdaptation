@@ -14,10 +14,12 @@ CORRUPTION:
     - Clipart
     - Product
     - RealWorld
+TEST:
+  BATCH_SIZE: 64
   
-  MODEL:
-    ADAPTATION: tent
-    ARCH: officehome_shot
-  OPTIM:
-    METHOD: SGD
-    LR: 0.0025
+MODEL:
+  ADAPTATION: tent
+  ARCH: officehome_shot
+OPTIM:
+  METHOD: SGD
+  LR: 0.0025

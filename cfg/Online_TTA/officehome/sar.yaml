@@ -14,12 +14,18 @@ CORRUPTION:
     - Clipart
     - Product
     - RealWorld
+
 TEST:
   BATCH_SIZE: 64
 
 MODEL:
-  ADAPTATION: source
+  ADAPTATION: sar
   ARCH: officehome_shot
 OPTIM:
   METHOD: SGD
   LR: 0.0025
+
+SAR:
+  E_MARGIN_COE: 0.4
+  RESET_CONSTANT: 0.005
+  

@@ -7,19 +7,28 @@ CORRUPTION:
     - Clipart
     - Product
     - RealWorld
-  
+    
   SEVERITY:
     - 1
   TYPE:
     - Clipart
     - Product
     - RealWorld
+
 TEST:
   BATCH_SIZE: 64
 
 MODEL:
-  ADAPTATION: source
+  ADAPTATION: deyo
   ARCH: officehome_shot
+
 OPTIM:
   METHOD: SGD
   LR: 0.0025
+
+DEYO:
+  FILTER_ENT: 1
+  FILTER_PLPD: 1
+  MARGIN: 0.5
+  MARGIN_E0: 0.4
+  PLPD_THRESHOLD: 0.2

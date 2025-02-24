@@ -1,26 +1,25 @@
 CORRUPTION:
-  DATASET: officehome
-  SOURCE_DATASET: officehome
-  SOURCE_DOMAIN: Art
+  DATASET: domainnet126
+  SOURCE_DATASET: domainnet126
+  SOURCE_DOMAIN: clipart
   SOURCE_DOMAINS: 
-    - Art
-    - Clipart
-    - Product
-    - RealWorld
-    
+    - clipart
+    - painting
+    - sketch
+    - real
+  
   SEVERITY:
     - 1
   TYPE:
-    - Clipart
-    - Product
-    - RealWorld
-
+    - real
+    - painting
+    - sketch
 TEST:
   BATCH_SIZE: 64
 
 MODEL:
   ADAPTATION: eata
-  ARCH: officehome_shot
+  ARCH: domainnet126_shot
 
 OPTIM:
   METHOD: SGD

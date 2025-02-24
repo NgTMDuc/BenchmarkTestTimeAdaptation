@@ -6,7 +6,7 @@ import pickle
 # import models.Res as Resnet
 from ..models import *
 from ..models import Res
-import clip
+from..models import clip
 
 def load_model(model_name, checkpoint_dir=None, domain=None, cfg = None):
     if model_name == 'Hendrycks2020AugMix_ResNeXt':

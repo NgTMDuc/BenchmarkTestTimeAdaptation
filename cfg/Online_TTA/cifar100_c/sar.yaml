@@ -1,11 +1,13 @@
+MODEL:
+  ADAPTATION: sar
+  ARCH: Hendrycks2020AugMix_ResNeXt 
+TEST:
+  BATCH_SIZE: 64
 CORRUPTION:
-  DATASET: cifar10_c
+  DATASET: cifar100_c
+  SOURCE_DOMAIN: origin
   SEVERITY:
     - 1
-    # - 2
-    # - 3
-    # - 4
-    # - 5
   TYPE:
     - gaussian_noise
     - shot_noise
@@ -22,14 +24,9 @@ CORRUPTION:
     - elastic_transform
     - pixelate
     - jpeg_compression
-  
-MODEL:
-  ADAPTATION: tent
-  ARCH: WideResNet
-TEST:
-  BATCH_SIZE: 64
-
 OPTIM:
   METHOD: SGD
   LR: 0.00025
-  
+SAR:
+  E_MARGIN_COE: 0.4
+  RESET_CONSTANT: 0.005 
