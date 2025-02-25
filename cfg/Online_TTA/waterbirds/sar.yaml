@@ -1,0 +1,19 @@
+MODEL:
+  ADAPTATION: sar
+  ARCH: resnet50-bn
+TEST:
+  BATCH_SIZE: 64
+CORRUPTION:
+  SOURCE_DATASET: waterbirds
+  SOURCE_DOMAIN: origin
+  DATASET: waterbirds
+  SEVERITY:
+    - 5
+  TYPE:
+    - spurious
+OPTIM:
+  METHOD: SGD
+  LR: 0.00125
+SAR:
+  E_MARGIN_COE: 0.4
+  RESET_CONSTANT: 0.005 

@@ -6,7 +6,8 @@ import pickle
 # import models.Res as Resnet
 from ..models import *
 from ..models import Res
-from..models import clip
+from ..models import clip
+from ..models.resnet import resnet
 
 def load_model(model_name, checkpoint_dir=None, domain=None, cfg = None):
     if model_name == 'Hendrycks2020AugMix_ResNeXt':
@@ -56,11 +57,17 @@ def load_model(model_name, checkpoint_dir=None, domain=None, cfg = None):
                 model = pickle.load(f)
     
     elif model_name == "resnet50-bn":
-        model = Res.resnet50()
-        model.fc = torch.nn.Linear(in_features=model.fc.in_features, out_features=2)
-        if checkpoint_dir is not None:
-            checkpoint_path = os.path.join(checkpoint_dir, "save.pt")
-            model.load_state_dict(torch.load(checkpoint_path))
+        if domain == "origin":
+            model = Res.resnet50()
+            model.fc = torch.nn.Linear(in_features=model.fc.in_features, out_features=2)
+            if checkpoint_dir is not None:
+                checkpoint_path = os.path.join(checkpoint_dir, "save.pt")
+                model.load_state_dict(torch.load(checkpoint_path))
+        else:
+            model = resnet("pacs", 50)
+            if checkpoint_dir is not None:
+                checkpoint_path = os.path.join(checkpoint_dir,'pacs',domain, 'model.pth')
+                model.load_state_dict(torch.load(checkpoint_path)["model"])
     elif model_name == 'vit':
         model=timm.create_model('vit_base_patch16_224', pretrained=True)
     elif model_name == 'convnext_base':

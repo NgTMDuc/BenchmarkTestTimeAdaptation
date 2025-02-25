@@ -55,7 +55,7 @@ def evaluate(cfg):
         raise ValueError(f"Adaptation method '{cfg.MODEL.ADAPTATION}' is not supported!")
 
     # get the test sequence containing the corruptions or domain names
-    if cfg.CORRUPTION.DATASET in {"domainnet126", "officehome"}:
+    if cfg.CORRUPTION.DATASET in {"domainnet126", "officehome", "pacs"}:
         # extract the domain sequence for a specific checkpoint.
         dom_names_all = get_domain_sequence(cfg.CORRUPTION.DATASET, cfg.CORRUPTION.SOURCE_DOMAIN)
     else:
@@ -74,14 +74,15 @@ def evaluate(cfg):
     if cfg.CORRUPTION.DATASET in {"coloredMNIST", "waterbirds"}:
         biased = True
     # start evaluation
-    for i_dom, domain_name in enumerate(dom_names_loop):
-        try:
-            model.reset()
-            logger.info("resetting model")
-        except:
-            logger.warning("not resetting model")
+    for severity in severities:
+        for i_dom, domain_name in enumerate(dom_names_loop):
+            try:
+                model.reset()
+                logger.info("resetting model")
+            except:
+                logger.warning("not resetting model")
 
-        for severity in severities:
+        # for severity in severities:
             testset, test_loader = load_dataset(cfg.CORRUPTION.DATASET, cfg.DATA_DIR,
                                                 cfg.TEST.BATCH_SIZE,
                                                 split='all', domain=domain_name, level=severity,

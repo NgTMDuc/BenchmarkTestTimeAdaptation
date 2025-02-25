@@ -1,6 +1,9 @@
 CORRUPTION:
   DATASET: imagenet_c
   SEVERITY:
+    - 2
+    - 3
+    - 4
     - 5
   TYPE:
     - gaussian_noise
@@ -25,7 +28,7 @@ TEST:
   BATCH_SIZE: 64
 OPTIM:
   METHOD: SGD
-  LR: 0.00025
+  LR:  0.001
 SAR:
   E_MARGIN_COE: 0.4
   RESET_CONSTANT: 0.005 

@@ -53,6 +53,11 @@ class NU(nn.Module):
             embed = nn.Sequential(*list(self.model.netF.children())[0:4])
             blocks = nn.Sequential(*list(self.model.netF.children())[4:8])
             post_layer = nn.Sequential((*list(self.model.netF.children())[8:], self.model.netB))
+        
+        elif self.args.MODEL.ARCH == "resnet50-bn":
+            embed = nn.Sequential(*list(self.model.children())[0:4])
+            blocks = nn.Sequential(*list(self.model.children())[4:7])
+            post_layer = nn.Sequential(list(self.model.children())[8])
 
         n_blocks = len(blocks)
         assert n_blocks >= self.args.PROPOSAL.LAYER, f"There are only {n_blocks} blocks in model"
@@ -122,6 +127,9 @@ class NU(nn.Module):
         outputs = self.model(x)
         self.optimizer.zero_grad()
         entropys = softmax_entropy(outputs)
+        plpd_new_return = plpd_new.clone().detach()
+        entropys_return = entropys.clone().detach()
+
 
         if self.args.DEYO.FILTER_ENT:
             filter_ids1 = torch.where((entropys < self.deyo_margin))[0]
@@ -160,6 +168,7 @@ class NU(nn.Module):
 
         plpd = torch.gather(prob_outputs, dim=1, index=cls1.reshape(-1,1)) - torch.gather(prob_outputs_prime, dim=1, index=cls1.reshape(-1,1))
         plpd = plpd.reshape(-1)
+        plpd_return = plpd.clone().detach()
         if self.args.DEYO.FILTER_PLPD:
             filter_ids2 = torch.where(plpd > self.args.DEYO.PLPD_THRESHOLD)[0]
         else:
@@ -176,8 +185,8 @@ class NU(nn.Module):
             )
 
             entropys = entropys.mul(coeff)
-        
-        loss = entropys[idx].mean(0)
+        if len(idx) > 0:
+            loss = entropys[idx].mean(0)
 
         if self.args.PROPOSAL.USE_BAD:
             filter_bad = torch.where(plpd < self.args.PROPOSAL.BAD_MARGIN)
@@ -190,14 +199,16 @@ class NU(nn.Module):
 
             bad_coeff = self.args.PROPOSAL.ALPHA * (1 / (torch.exp(((entropys_backward.clone().detach()) - self.margin_e0))))
             entropys_backward = entropys_backward.mul(bad_coeff).mul(-1)
-
-            loss = loss + entropys_backward.mean(0)
+            if len(idx) > 0:
+                loss = loss + entropys_backward.mean(0)
+            else:
+                loss = entropys_backward.mean(0)
         
         loss.backward()
         self.optimizer.step()
         del x_prime
 
-        return outputs
+        return outputs, plpd_return, plpd_new_return, entropys_return
 
 
     def get_style(self, x):

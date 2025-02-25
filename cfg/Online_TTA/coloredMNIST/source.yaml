@@ -1,0 +1,13 @@
+MODEL:
+  ADAPTATION: source
+  ARCH: resnet18-bn
+TEST:
+  BATCH_SIZE: 64
+CORRUPTION:
+  SOURCE_DATASET: coloredMNIST
+  SOURCE_DOMAIN: origin
+  DATASET: coloredMNIST
+  SEVERITY:
+    - 1
+  TYPE:
+    - spurious

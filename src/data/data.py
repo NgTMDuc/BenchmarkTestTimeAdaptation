@@ -2,6 +2,7 @@ import os
 import pickle
 
 import torch
+import torch.utils
 import torchvision
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -10,6 +11,7 @@ from robustbench.data import load_cifar10c, load_cifar100c
 from .CustomCifarC_Dataset import CustomCifarC_Dataset
 from .Dataset_Idx import Dataset_Idx
 from .DomainNet126 import DomainNet126
+from .pacs import PACS
 from .waterbirds_dataset import WaterbirdsDataset
 from .coloredMNIST import ColoredMNIST
 from .augmentations import get_augmentation_versions, NCropsTransform
@@ -100,6 +102,12 @@ def get_transform(dataset_name, adaptation, num_augment=1):
                 transforms.Normalize((0.1307, 0.1307, 0.), (0.3081, 0.3081, 0.3081))
             ])
         elif dataset_name == "waterbirds":
+            transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Resize((224, 224)),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ])
+        elif dataset_name == "pacs":
             transform = transforms.Compose([
                 transforms.ToTensor(),
                 transforms.Resize((224, 224)),
@@ -287,7 +295,12 @@ def load_domainnet126(root, domain, transforms, batch_size=64, workers=4, split=
                                               pin_memory=True)
     return dataset, data_loader
 
-
+def load_pacs(root, domain, transforms=None, batch_size=64, workers=4):
+    assert os.path.exists(root), 'PACS root path does not exist: {}'.format(root)
+    assert domain in ['art_painting', 'cartoon', 'photo', 'sketch'], f'Unknown domain: {domain}'
+    dataset = PACS(root=root, domain = domain, transform=transforms)
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=workers, pin_memory = True)
+    return dataset, data_loader
 def load_officehome(root, domain, transforms=None, batch_size=64, workers=4, split='train'):
     data_dir = os.path.join(root, 'office-home')
 
@@ -353,7 +366,8 @@ def load_dataset(dataset, root, batch_size=64, workers=4, split='train', adaptat
     
     elif dataset == "waterbirds":
         return load_waterbirds(root = root, batch_size=64, workers=workers, split=split, transform=transforms)
-    
+    elif dataset == "pacs":
+        return load_pacs(root=root, batch_size=batch_size, workers=workers, transforms=transforms, domain = domain)
     else:
         raise ValueError('Unknown dataset: {}'.format(dataset))
 

@@ -418,12 +418,14 @@ def get_num_classes(dataset_name):
                                 "imagenet": 1000, "imagenet_c": 1000, "imagenet_k": 1000, "imagenet_r": 200,
                                 "imagenet_a": 200, "imagenet_d": 164, "imagenet_d109": 109, "imagenet200": 200,
                                 "domainnet126": 126, "office31": 31, "visda": 12, "officehome": 65, 
-                                "coloredMNIST": 2, "waterbirds": 2
+                                "coloredMNIST": 2, "waterbirds": 2, "pacs": 7
                                 }
     return dataset_name2num_classes[dataset_name]
 
 
 def get_domain_sequence(dataset, domain):
+    print(dataset)
+    print(domain)
     mapping = {}
     mapping['domainnet126'] = {"real": ["clipart", "painting", "sketch"],
                                "clipart": ["painting", "real", "sketch"],
@@ -433,5 +435,12 @@ def get_domain_sequence(dataset, domain):
     mapping['officehome'] = {'Art': ['Clipart', 'Product', 'RealWorld'],
                              'Clipart': ['Art', 'Product', 'RealWorld'],
                              'Product': ['Art', 'Clipart', 'RealWorld'],
-                             'RealWorld': ['Art', 'Clipart', 'Product']}
+                             'RealWorld': ['Art', 'Clipart', 'Product']
+                             }
+
+    mapping["pacs"] = {"art_painting": ["cartoon", "photo", "sketch"],
+                       "cartoon": ["art_painting", "photo", "sketch"],
+                       "photo": ["cartoon", "art_painting", "sketch"],
+                       "sketch": ["cartoon", "photo", "art_painting"],
+                       }
     return mapping[dataset][domain]

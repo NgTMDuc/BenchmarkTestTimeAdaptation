@@ -3,7 +3,11 @@ CORRUPTION:
   SOURCE_DATASET: imagenet
   SOURCE_DOMAIN: origin
   SEVERITY:
-  - 5
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
   TYPE:
     - gaussian_noise
     - shot_noise
@@ -25,7 +29,7 @@ MODEL:
   ARCH: vit
 OPTIM:
   METHOD: SGD
-  LR: 0.0025
+  LR:  0.001
 
 EATA:
   FISHER_ALPHA: 2000

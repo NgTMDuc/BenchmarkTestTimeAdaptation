@@ -1,7 +1,10 @@
 CORRUPTION:
   DATASET: imagenet_c
   SEVERITY:
-    - 5
+    - 1
+    - 2
+    - 3
+    - 4
   TYPE:
     - gaussian_noise
     - shot_noise
@@ -23,6 +26,6 @@ MODEL:
   ARCH: vit
 OPTIM:
   METHOD: SGD
-  LR: 0.00025
+  LR:  0.001
 TEST:
   BATCH_SIZE: 64

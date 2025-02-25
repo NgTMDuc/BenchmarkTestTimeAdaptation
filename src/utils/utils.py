@@ -4,6 +4,9 @@ import os
 import random
 import sys
 from copy import deepcopy
+import pandas as pd
+
+import torch.utils
 from tqdm import tqdm
 import numpy as np
 import torch
@@ -12,7 +15,24 @@ import torch.nn.functional as F
 from torch.nn.utils.weight_norm import WeightNorm
 
 # device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
+def save_results(predictions, labels, entropys, plpds, path):
+    df = pd.DataFrame({
+        "predictions": predictions.cpu(),
+        "labels": labels.cpu(),
+        "entropys": entropys.cpu(),
+        "plpds": plpds.cpu()
+    })
+    df.to_csv(path, index=False)
+    # print("Saving success")
+def save_results_propose(predictions, labels, entropys, plpds_new, plpds, path):
+    df = pd.DataFrame({
+        "predictions": predictions.cpu(),
+        "labels": labels.cpu(),
+        "entropys": entropys.cpu(),
+        "plpd_news": plpds_new.cpu(),
+        "plpds": plpds.cpu()
+    })
+    df.to_csv(path, index=False)
 
 def mean(items):
     return sum(items) / len(items)
@@ -144,6 +164,41 @@ def get_accuracy(model: torch.nn.Module,
     accuracy = correct.item() / len(data_loader.dataset)
     return accuracy
 
+def get_accuracy_deyo(model: torch.nn.Module,
+                      data_loader: torch.utils.data.DataLoader,
+                      folder: str,
+                      device: torch.device = None):
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    correct = 0.
+    for i, data in enumerate(tqdm(data_loader)):
+        path = os.path.join(folder, f"{i}.csv")
+        imgs, labels = data[0], data[1]
+        output, entropys, plpds = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
+        predictions = output.argmax(1)
+        save_results(predictions, labels, entropys, plpds, path)
+        correct += (predictions == labels.to(device)).float().sum()
+    accuracy = correct.item() / len(data_loader.dataset)
+    return accuracy
+def get_accuracy_negative(model: torch.nn.Module,
+                          data_loader: torch.utils.data.DataLoader,
+                          folder : str,
+                          device : torch.device = None
+                          ):
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    correct = 0.
+    for i, data in enumerate(tqdm(data_loader)):
+        path = os.path.join(folder, f"{i}.csv")
+        imgs, labels = data[0], data[1]
+        output, entropys,plpds_new, plpds = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
+        predictions = output.argmax(1)
+        save_results_propose(predictions, labels, entropys, plpds_new, plpds, path)
+        correct += (predictions == labels.to(device)).float().sum()
+    accuracy = correct.item() / len(data_loader.dataset)
+    return accuracy
 def evaluate_model(model: torch.nn.Module,
                    data_loader: torch.utils.data.DataLoader,
                    device: torch.device = None,
@@ -272,6 +327,8 @@ def get_args():
     parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
     parser.add_argument('--cfg', default=None, type=str, help='path to config file')
     parser.add_argument('--MODEL_CONTINUAL', default=None, type=str)
+    parser.add_argument('--CORRUPTION_SEVERITY', default=None, type=str)
+
     parser.add_argument('--OPTIM_LR', default=None, type=float)
     parser.add_argument('--BN_ALPHA', default=None, type=float)
     parser.add_argument('--output_dir', default=None, type=str, help='path to output_dir file')

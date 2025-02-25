@@ -105,15 +105,15 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin):
     optimizer.zero_grad()
     entropys = softmax_entropy(outputs)
     if args.DEYO.FILTER_ENT:
-        filter_ids_1 = torch.where((entropys < deyo_margin))
+        filter_ids_1 = torch.where((entropys < deyo_margin))[0]
     else:    
-        filter_ids_1 = torch.where((entropys <= math.log(1000)))
-    entropys = entropys[filter_ids_1]
-    if len(entropys) == 0:
-        return outputs
+        filter_ids_1 = torch.where((entropys <= math.log(1000)))[0]
+    # entropys = entropys[filter_ids_1]
+    # if len(entropys) == 0:
+        # return outputs
     
-    x_prime = x[filter_ids_1]
-    x_prime = x_prime.detach()
+    # x_prime = x[filter_ids_1]
+    x_prime = x.detach()
     if args.DEYO.AUG_TYPE=='occ':
         first_mean = x_prime.view(x_prime.shape[0], x_prime.shape[1], -1).mean(dim=2)
         final_mean = first_mean.unsqueeze(-1).unsqueeze(-1)
@@ -135,7 +135,7 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin):
     with torch.no_grad():
         outputs_prime = model(x_prime)
 
-    prob_outputs = outputs[filter_ids_1].softmax(1)
+    prob_outputs = outputs.softmax(1)
     prob_outputs_prime = outputs_prime.softmax(1)
 
     cls1 = prob_outputs.argmax(dim=1)
@@ -144,16 +144,24 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin):
     plpd = plpd.reshape(-1)
 
     if args.DEYO.FILTER_PLPD:
-        filter_ids_2 = torch.where(plpd > args.DEYO.PLPD_THRESHOLD)
+        filter_ids_2 = torch.where(plpd > args.DEYO.PLPD_THRESHOLD)[0]
     else:
-        filter_ids_2 = torch.where(plpd >= -2.0)
-    entropys = entropys[filter_ids_2]
-    
-    if len(entropys) == 0:
-        del x_prime
-        del plpd
-        return outputs
-    plpd = plpd[filter_ids_2]
+        filter_ids_2 = torch.where(plpd >= -2.0)[0]
+    # entropys = entropys[filter_ids_2]
+    combined_filter_ids = torch.tensor(list(set(filter_ids_1.tolist()) & set(filter_ids_2.tolist())))
+    plpd_return = plpd.clone().detach()
+    entropys_return = entropys.clone().detach()
+    # print(len(combined_filter_ids))
+    if len(combined_filter_ids) == 0:
+        return outputs, entropys_return, plpd_return
+    entropys = entropys[combined_filter_ids]
+    # if len(entropys) == 0:
+    #     del x_prime
+    #     del plpd
+    #     return outputs
+    # plpd = plpd[filter_ids_2]
+    # plpd_return = plpd.clone().detach()
+    plpd = plpd[combined_filter_ids]
 
     if args.DEYO.REWEIGHT_ENT or args.DEYO.REWEIGHT_PLPD:
         coeff = (args.DEYO.REWEIGHT_ENT * (1 / (torch.exp(((entropys.clone().detach()) - margin)))) +
@@ -168,8 +176,8 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin):
     optimizer.zero_grad()
 
     del x_prime
-    del plpd
-    return outputs
+    # del plpd
+    return outputs, entropys_return, plpd_return
 
 
 

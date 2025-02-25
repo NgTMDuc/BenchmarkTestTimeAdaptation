@@ -1,0 +1,36 @@
+CORRUPTION:
+  DATASET: pacs
+  SOURCE_DATASET: pacs
+  SOURCE_DOMAIN: art_painting
+  SOURCE_DOMAINS: 
+    - art_painting
+    - cartoon
+    - photo
+    - sketch
+  
+  SEVERITY:
+    - 1
+  TYPE:
+    - cartoon
+    - photo
+    - sketch
+TEST:
+  BATCH_SIZE: 64
+
+MODEL:
+  ADAPTATION: deyo
+  ARCH: resnet50-bn
+
+OPTIM:
+  METHOD: SGD
+  LR: 0.0025
+
+DEYO:
+  FILTER_ENT: 1
+  FILTER_PLPD: 1
+  MARGIN: 0.5
+  MARGIN_E0: 0.4
+  PLPD_THRESHOLD: 0.2
+
+PROPOSAL:
+  

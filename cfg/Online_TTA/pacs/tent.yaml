@@ -1,0 +1,25 @@
+CORRUPTION:
+  DATASET: pacs
+  SOURCE_DATASET: pacs
+  SOURCE_DOMAIN: art_painting
+  SOURCE_DOMAINS: 
+    - art_painting
+    - cartoon
+    - photo
+    - sketch
+  
+  SEVERITY:
+    - 1
+  TYPE:
+    - cartoon
+    - photo
+    - sketch
+TEST:
+  BATCH_SIZE: 64
+
+MODEL:
+  ADAPTATION: tent
+  ARCH: resnet50-bn
+OPTIM:
+  METHOD: SGD
+  LR: 0.0025
