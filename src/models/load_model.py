@@ -19,6 +19,8 @@ def load_model(model_name, checkpoint_dir=None, domain=None, cfg = None):
             model.load_state_dict(torch.load(checkpoint_path))
         else:
             raise ValueError('No checkpoint path provided')
+    elif model_name == "resnet50_gn":
+        model = timm.create_model("resnet50_gn", pretrained = True)
     # Resnet 50 for ImageNet-C
     elif model_name == 'resnet50':
         model = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)

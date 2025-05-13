@@ -1,0 +1,41 @@
+CORRUPTION:
+  DATASET: officehome
+  SOURCE_DATASET: officehome
+  SOURCE_DOMAIN: Art
+  SOURCE_DOMAINS: 
+    - Art
+    - Clipart
+    - Product
+    - RealWorld
+    
+  SEVERITY:
+    - 1
+  TYPE:
+    - Clipart
+    - Product
+    - RealWorld
+
+TEST:
+  BATCH_SIZE: 64
+
+MODEL:
+  ADAPTATION: proposal
+  ARCH: officehome_shot
+
+OPTIM:
+  METHOD: SGD
+  LR: 0.0025
+
+DEYO:
+  FILTER_ENT: 1
+  FILTER_PLPD: 1
+  MARGIN: 0.5
+  MARGIN_E0: 0.4
+  PLPD_THRESHOLD: 0.2
+
+PROPOSAL:
+  LAYER: 2
+  USE_BAD: True
+  NEW_MARGIN: 0.8
+  NEW_MARGIN_E0: 0.0
+  BAD_MARGIN: 0.1

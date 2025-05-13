@@ -1,10 +1,10 @@
 CORRUPTION:
   DATASET: imagenet_c
   SEVERITY:
-    - 1
-    - 2
-    - 3
-    - 4
+    # - 1
+    # - 2
+    - 5
+    # - 4
   TYPE:
     - gaussian_noise
     - shot_noise

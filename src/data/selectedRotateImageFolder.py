@@ -112,6 +112,7 @@ class SelectedRotateImageFolder(datasets.ImageFolder):
         if self.original:
             results.append(img)
             results.append(target)
+            results.append(path)
         if self.rotation:
             if self.rotation_transform is not None:
                 img = self.rotation_transform(img_input)
@@ -175,7 +176,7 @@ def prepare_train_dataloader(args, trset=None, sampler=None):
 
 
 def prepare_test_data(args, use_transforms=True):
-    if args.corruption == 'original':
+    if args.corruption.type == 'original':
         te_transforms_local = te_transforms if use_transforms else None
     elif args.corruption in common_corruptions:
         te_transforms_local = te_transforms_imageC if use_transforms else None

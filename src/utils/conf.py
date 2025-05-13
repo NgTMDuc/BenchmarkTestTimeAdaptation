@@ -67,7 +67,7 @@ _C.MODEL.ADAPTATION = 'source'
 # Reset the model before every new batch
 _C.MODEL.EPISODIC = False
 
-_C.MODEL.CONTINUAL = 'Fully'
+_C.MODEL.CONTINUAL = 'CONTINUAL'
 
 # ----------------------------- Corruption options -------------------------- #
 _C.CORRUPTION = CfgNode()
@@ -424,8 +424,8 @@ def get_num_classes(dataset_name):
 
 
 def get_domain_sequence(dataset, domain):
-    print(dataset)
-    print(domain)
+    # print(dataset)
+    # print(domain)
     mapping = {}
     mapping['domainnet126'] = {"real": ["clipart", "painting", "sketch"],
                                "clipart": ["painting", "real", "sketch"],

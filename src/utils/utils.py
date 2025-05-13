@@ -15,12 +15,13 @@ import torch.nn.functional as F
 from torch.nn.utils.weight_norm import WeightNorm
 
 # device = "cuda:0" if torch.cuda.is_available() else "cpu"
-def save_results(predictions, labels, entropys, plpds, path):
+def save_results(predictions, labels, entropys, plpds, path, paths):
     df = pd.DataFrame({
         "predictions": predictions.cpu(),
         "labels": labels.cpu(),
         "entropys": entropys.cpu(),
-        "plpds": plpds.cpu()
+        "plpds": plpds.cpu(),
+        "paths": paths
     })
     df.to_csv(path, index=False)
     # print("Saving success")
@@ -158,6 +159,7 @@ def get_accuracy(model: torch.nn.Module,
     for i, data in enumerate(tqdm(data_loader)):
         imgs, labels = data[0], data[1]
         output = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
+        
         predictions = output.argmax(1)
         correct += (predictions == labels.to(device)).float().sum()
 
@@ -174,16 +176,17 @@ def get_accuracy_deyo(model: torch.nn.Module,
     correct = 0.
     for i, data in enumerate(tqdm(data_loader)):
         path = os.path.join(folder, f"{i}.csv")
-        imgs, labels = data[0], data[1]
+        imgs, labels, paths = data[0], data[1], data[2]
         output, entropys, plpds = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
         predictions = output.argmax(1)
-        save_results(predictions, labels, entropys, plpds, path)
+        save_results(predictions, labels, entropys, plpds, path, paths)
         correct += (predictions == labels.to(device)).float().sum()
     accuracy = correct.item() / len(data_loader.dataset)
     return accuracy
 def get_accuracy_negative(model: torch.nn.Module,
                           data_loader: torch.utils.data.DataLoader,
                           folder : str,
+                          cfg,
                           device : torch.device = None
                           ):
     if device is None:
@@ -193,7 +196,7 @@ def get_accuracy_negative(model: torch.nn.Module,
     for i, data in enumerate(tqdm(data_loader)):
         path = os.path.join(folder, f"{i}.csv")
         imgs, labels = data[0], data[1]
-        output, entropys,plpds_new, plpds = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
+        output, plpds,plpds_new, entropys = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
         predictions = output.argmax(1)
         save_results_propose(predictions, labels, entropys, plpds_new, plpds, path)
         correct += (predictions == labels.to(device)).float().sum()
@@ -201,6 +204,7 @@ def get_accuracy_negative(model: torch.nn.Module,
     return accuracy
 def evaluate_model(model: torch.nn.Module,
                    data_loader: torch.utils.data.DataLoader,
+                   folder : str,
                    device: torch.device = None,
                    ):
     if device is None:
@@ -210,11 +214,12 @@ def evaluate_model(model: torch.nn.Module,
     total_count = [0,0,0,0]
     
     for i, data in enumerate(tqdm(data_loader)):
-        imgs, labels = data[0], data[1]
-        output = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
+        path = os.path.join(folder, f"{i}.csv")
+        imgs, labels, paths  = data[0], data[1], data[3]
+        output, entropys, plpds = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
         labels = labels.to(device)
         predictions = output.argmax(1)
-        
+        save_results(predictions, labels, entropys, plpds, path, paths)
         
         place = data[2].to(device)
         group = 2 * labels + place
@@ -224,10 +229,38 @@ def evaluate_model(model: torch.nn.Module,
             total_count[group_idx] += len(TFtensor[group==group_idx])
             
         correct = sum(correct_count)
-    
+        
     return correct / len(data_loader.dataset), correct_count[0] / total_count[0], correct_count[1] / total_count[1], correct_count[2] / total_count[2], correct_count[3] / total_count[3]
             
-
+def evaluate_model_negative(model: torch.nn.Module,
+                   data_loader: torch.utils.data.DataLoader,
+                   folder : str,
+                   device: torch.device = None,
+                   ):
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    correct = 0
+    correct_count = [0,0,0,0]
+    total_count = [0,0,0,0]
+    
+    for i, data in enumerate(tqdm(data_loader)):
+        path = os.path.join(folder, f"{i}.csv")
+        imgs, labels = data[0], data[1]
+        output, plpds, plpds_new, entropys = model([img.to(device) for img in imgs]) if isinstance(imgs, list) else model(imgs.to(device))
+        labels = labels.to(device)
+        predictions = output.argmax(1)
+        save_results_propose(predictions, labels, entropys, plpds_new, plpds, path)
+        
+        place = data[2].to(device)
+        group = 2 * labels + place
+        TFtensor = (predictions == labels)
+        for group_idx in range(4):
+            correct_count[group_idx] += TFtensor[group==group_idx].sum().item()
+            total_count[group_idx] += len(TFtensor[group==group_idx])
+            
+        correct = sum(correct_count)
+        
+    return correct / len(data_loader.dataset), correct_count[0] / total_count[0], correct_count[1] / total_count[1], correct_count[2] / total_count[2], correct_count[3] / total_count[3]
 def split_up_model(model):
     modules = list(model.children())[:-1]
     classifier = list(model.children())[-1]
@@ -414,4 +447,13 @@ def merge_cfg_from_args(cfg, args):
         cfg.ADACONTRAST.QUEUE_SIZE = args.ADACONTRAST_QUEUE_SIZE
     if args.TEST_BATCH_SIZE is not None:
         cfg.TEST.BATCH_SIZE = args.TEST_BATCH_SIZE
+    if args.PROPOSAL.NEW_MARGIN is not None:
+        cfg.PROPOSAL.NEW_MARGIN = args.PROPOSAL_NEW_MARGIN
+    if args.PROPOSAL.NEW_MARGIN_E0 is not None:
+        cfg.PROPOSAL.NEW_MARGIN_E0 = args.PROPOSAL_NEW_MARGIN_E0
 
+    if args.PROPOSAL.ALPHA is not None :
+        cfg.PROPOSAL.ALPHA = args.PROPOSAL_ALPHA
+
+    if args.PROPOSAL.LAYER is not None :
+        cfg.PROPOSAL.LAYER = args.PROPOSAL_LAYER

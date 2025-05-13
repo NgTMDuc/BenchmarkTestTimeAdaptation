@@ -29,9 +29,9 @@ class DeYO(nn.Module):
             self.reset()
         
         for _ in range(self.steps):
-            outputs = forward_and_adapt_deyo(x, self.model, self.args, self.optimizer, self.deyo_margin, self.margin_e0)
+            outputs, entropys_return, plpd_return = forward_and_adapt_deyo(x, self.model, self.args, self.optimizer, self.deyo_margin, self.margin_e0)
         
-        return outputs
+        return outputs, entropys_return, plpd_return
 
     def reset(self):
         if self.model_state is None or self.optimizer_state is None:
@@ -155,12 +155,6 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin):
     if len(combined_filter_ids) == 0:
         return outputs, entropys_return, plpd_return
     entropys = entropys[combined_filter_ids]
-    # if len(entropys) == 0:
-    #     del x_prime
-    #     del plpd
-    #     return outputs
-    # plpd = plpd[filter_ids_2]
-    # plpd_return = plpd.clone().detach()
     plpd = plpd[combined_filter_ids]
 
     if args.DEYO.REWEIGHT_ENT or args.DEYO.REWEIGHT_PLPD:
@@ -176,7 +170,6 @@ def forward_and_adapt_deyo(x, model, args, optimizer, deyo_margin, margin):
     optimizer.zero_grad()
 
     del x_prime
-    # del plpd
     return outputs, entropys_return, plpd_return
 
 

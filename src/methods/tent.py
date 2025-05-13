@@ -53,12 +53,12 @@ class Tent(nn.Module):
 
     @staticmethod
     def configure_model(model):
-        """Configure model for use with tent."""
-        # train mode, because tent optimizes the model to minimize entropy
+        """Configure model for use with eata."""
+        # train mode, because eata optimizes the model to minimize entropy
         model.train()
-        # disable grad, to (re-)enable only what tent updates
+        # disable grad, to (re-)enable only what eata updates
         model.requires_grad_(False)
-        # configure norm for tent updates: enable grad + force batch statisics
+        # configure norm for eata updates: enable grad + force batch statisics
         for m in model.modules():
             if isinstance(m, nn.BatchNorm2d):
                 m.requires_grad_(True)
@@ -67,6 +67,8 @@ class Tent(nn.Module):
                 m.running_mean = None
                 m.running_var = None
             if isinstance(m, nn.LayerNorm):
+                m.requires_grad_(True)
+            if isinstance(m, nn.GroupNorm):
                 m.requires_grad_(True)
         return model
 
@@ -80,7 +82,7 @@ class Tent(nn.Module):
         params = []
         names = []
         for nm, m in model.named_modules():
-            if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.LayerNorm):
+            if isinstance(m, (nn.BatchNorm2d, nn.GroupNorm, nn.LayerNorm)):
                 for np, p in m.named_parameters():
                     if np in ['weight', 'bias']:  # weight is scale, bias is shift
                         params.append(p)

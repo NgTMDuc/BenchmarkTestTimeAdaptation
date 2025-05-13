@@ -36,4 +36,4 @@ class PACS(Dataset):
         img = Image.open(self.img_paths[idx]).convert("RGB")
         if self.transform is not None:
             img = self.transform(img)
-        return img, label
+        return img, label, self.img_paths[idx]

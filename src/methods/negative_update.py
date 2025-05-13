@@ -50,15 +50,23 @@ class NU(nn.Module):
             post_layer = nn.Sequential(*list(self.model.children())[5:-1])
 
         elif self.args.MODEL.ARCH == "officehome_shot" or self.args.MODEL.ARCH == "domainnet126_shot":
-            embed = nn.Sequential(*list(self.model.netF.children())[0:4])
-            blocks = nn.Sequential(*list(self.model.netF.children())[4:8])
-            post_layer = nn.Sequential((*list(self.model.netF.children())[8:], self.model.netB))
-        
+            embed = nn.Sequential(*list(self.model.netF.children())[0:5])
+            blocks = nn.Sequential(*list(self.model.netF.children())[5:9])
+            post_layer = nn.Sequential(*list(self.model.netB.children())[9:])
+
         elif self.args.MODEL.ARCH == "resnet50-bn":
             embed = nn.Sequential(*list(self.model.children())[0:4])
-            blocks = nn.Sequential(*list(self.model.children())[4:7])
+            blocks = nn.Sequential(*list(self.model.children())[4:8])
             post_layer = nn.Sequential(list(self.model.children())[8])
-
+        
+        elif self.args.MODEL.ARCH == "resnet18-bn":
+            embed = nn.Sequential(*list(self.model.children())[0:4])
+            blocks = nn.Sequential(*list(self.model.children())[4:8])
+            post_layer = nn.Sequential(list(self.model.children())[8])
+        elif self.args.MODEL.ARCH == "resnet50_gn":
+            embed = nn.Sequential(*list(self.model.children())[0:4])
+            blocks = nn.Sequential(*list(self.model.children())[4:8])
+            post_layer = nn.Sequential(list(self.model.children())[8])
         n_blocks = len(blocks)
         assert n_blocks >= self.args.PROPOSAL.LAYER, f"There are only {n_blocks} blocks in model"
         encoder1 = blocks[:self.args.PROPOSAL.LAYER]
@@ -99,7 +107,12 @@ class NU(nn.Module):
         if self.args.MODEL.ARCH == "WideResNet":
             feature_ori = F.avg_pool2d(feature_ori, 8)
             x_trans = F.avg_pool2d(x_trans, 8)
-        
+        if self.args.MODEL.ARCH == "officehome_shot":
+            feature_ori = feature_ori.view(feature_ori.size(0), -1)
+            x_trans = x_trans.view(x_trans.size(0), -1)
+            feature_ori = self.model.netB(feature_ori)
+            x_trans = self.model.netB(x_trans)
+            
         
         with torch.no_grad():
             output_ori = self.fc(feature_ori.view(feature_ori.size(0), -1)).softmax(1)
@@ -124,6 +137,7 @@ class NU(nn.Module):
 
     @torch.enable_grad()
     def forward_and_adapt(self, x, filter_ids0, plpd_new):
+        # print(plpd_new)
         outputs = self.model(x)
         self.optimizer.zero_grad()
         entropys = softmax_entropy(outputs)
@@ -178,7 +192,7 @@ class NU(nn.Module):
         idx = torch.unique(combined)
 
         if self.args.DEYO.REWEIGHT_ENT or self.args.DEYO.REWEIGHT_PLPD:
-            coeff = (
+            coeff = 1 * (
                 self.args.DEYO.REWEIGHT_ENT * (1 / (torch.exp(((entropys.clone().detach()) - self.margin_e0)))) + 
                 self.args.DEYO.REWEIGHT_PLPD * (1 / (torch.exp(-1. * plpd.clone().detach()))) + 
                 1 / (torch.exp(plpd_new.to(self.device).clone().detach() - self.args.PROPOSAL.NEW_MARGIN_E0))
@@ -220,6 +234,8 @@ class NU(nn.Module):
             mu = x.mean(dim = 2, keepdim = False)
             var = x.var(dim = 2, keepdim = False)
             var = (var + 1e-6).sqrt()
+        # print(mu)
+        # print(var)
         return mu, var
     
     def sqrtvar(self, x):
@@ -228,7 +244,7 @@ class NU(nn.Module):
         return t
     
     def  _reparameterize(self, mu, std):
-        epsilon = torch.randn_like(std) * 0.1
+        epsilon = torch.randn_like(std) 
         return mu + epsilon * std 
 
     def reset(self):

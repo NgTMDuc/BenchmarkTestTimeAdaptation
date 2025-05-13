@@ -11,13 +11,12 @@ CORRUPTION:
     - 5
   TYPE:
     - spurious
-# OPTIM:
-#   METHOD: SGD
-#   LR: 0.00125
-#   MOMENTUM: 0.9
-#   WD: 0.0
-# #   NESTEROV: False
-# DEYO:
-#   PLPD_THRESHOLD: 0.5
-  # DEYO_MARGIN_E0: 1
-  # FILTER_ENT: False
+OPTIM:
+  METHOD: SGD
+  LR: 0.00125
+DEYO:
+  FILTER_ENT: 1
+  FILTER_PLPD: 1
+  MARGIN: 0.5
+  MARGIN_E0: 0.4
+  PLPD_THRESHOLD: 0.5

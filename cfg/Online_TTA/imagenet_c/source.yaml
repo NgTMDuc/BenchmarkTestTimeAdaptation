@@ -1,7 +1,7 @@
 CORRUPTION:
   DATASET: imagenet_c
   SEVERITY:
-    - 1
+    - 5
   TYPE:
     - gaussian_noise
     - shot_noise
@@ -22,4 +22,4 @@ MODEL:
   ADAPTATION: source
   ARCH: vit
 TEST:
-  BATCH_SIZE: 64
+  BATCH_SIZE: 1

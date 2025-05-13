@@ -91,6 +91,8 @@ class EATA(nn.Module):
                 m.running_var = None
             if isinstance(m, nn.LayerNorm):
                 m.requires_grad_(True)
+            if isinstance(m, nn.GroupNorm):
+                m.requires_grad_(True)
         return model
 
     @staticmethod

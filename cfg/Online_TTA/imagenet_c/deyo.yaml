@@ -3,10 +3,10 @@ CORRUPTION:
   SOURCE_DATASET: imagenet
   SOURCE_DOMAIN: origin
   SEVERITY:
-    - 1
-    - 2
-    - 3
-    - 4
+    # - 1
+    # - 2
+    # - 3
+    # - 4
     - 5
   TYPE:
     - gaussian_noise
@@ -27,7 +27,7 @@ CORRUPTION:
 
 OPTIM:
   METHOD: SGD
-  LR:  0.001
+  LR:  0.0001
 
 MODEL:
   ADAPTATION: deyo
@@ -40,5 +40,5 @@ DEYO:
   FILTER_PLPD: 1
   MARGIN: 0.5
   MARGIN_E0: 0.4
-  PLPD_THRESHOLD: 0.2
+  PLPD_THRESHOLD: 0.1
   

@@ -1,4 +1,4 @@
-DATASET="pacs"     # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_vit imagenet_convnet imagenet_efn coloredMNIST waterbirds
+DATASET="imagenet_c"     # cifar10_c cifar100_c imagenet_c domainnet126 officehome imagenet_vit imagenet_convnet imagenet_efn coloredMNIST waterbirds
 METHOD="proposal"
 echo DATASET: $DATASET
 echo METHOD: $METHOD

@@ -6,7 +6,7 @@ import numpy as np
 import random
 from src.methods import *
 from src.models.load_model import load_model
-from src.utils import get_accuracy, get_args, evaluate_model, get_accuracy_deyo
+from src.utils import get_accuracy, get_args, evaluate_model, get_accuracy_deyo, get_accuracy_negative, evaluate_model_negative
 from src.utils.conf import cfg, load_cfg_fom_args, get_num_classes, get_domain_sequence
 import warnings
 warnings.filterwarnings("ignore")
@@ -73,11 +73,11 @@ def evaluate(cfg):
     if cfg.CORRUPTION.DATASET in {"coloredMNIST", "waterbirds"}:
         biased = True
     # start evaluation
-    folder_save = "save_propose/"
+    folder_save = f"save_propose/{cfg.CORRUPTION.DATASET}/{cfg.CORRUPTION.SOURCE_DOMAIN}"
     for severity in severities:
         for i_dom, domain_name in enumerate(dom_names_loop):
         # for severity in severities:
-            folder = os.path.join(folder_save, cfg.CORRUPTION.DATASET, domain_name, str(severity))
+            folder = os.path.join(folder_save, domain_name, str(severity), f"{cfg.PROPOSAL.LAYER}", f"{cfg.PROPOSAL.NEW_MARGIN}")
             if not os.path.exists(folder):
                 os.makedirs(folder)
             try:
@@ -97,10 +97,10 @@ def evaluate(cfg):
 
             for epoch in range(cfg.TEST.EPOCH):
                 if not biased:
-                    acc = get_accuracy_deyo(
-                        model, data_loader=test_loader, folder = folder)
+                    acc = get_accuracy_negative(
+                        model, data_loader=test_loader, cfg = cfg, folder = folder)
                 else:
-                    acc, LL, LS, SL, SS = evaluate_model(model, data_loader=test_loader)
+                    acc, LL, LS, SL, SS = evaluate_model_negative(model, data_loader=test_loader, folder = folder)
                 if cfg.TEST.EPOCH > 1:
                     print(f"epoch: {epoch}, acc: {acc:.2%}")
                     # logger.info(f"epoch: {epoch}, acc: {acc:.2%}")

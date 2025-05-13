@@ -29,7 +29,7 @@ class WaterbirdsDataset(Dataset):
         if self.transform is not None:
             img = self.transform(img)
         y = self.dataset[str(true_idx)].attrs['y']
-        return img, y, self.dataset[str(true_idx)].attrs["place"]
+        return img, y, self.dataset[str(true_idx)].attrs["place"], self.index_map[index]
     
     def set_dataset_size(self, subset_size):
         indices = list(range(self.num_data))

@@ -73,18 +73,18 @@ def evaluate(cfg):
     if cfg.CORRUPTION.DATASET in {"coloredMNIST", "waterbirds"}:
         biased = True
     # start evaluation
-    folder_save = "save_imgs/"
+    folder_save = f"save_deyo/{cfg.CORRUPTION.DATASET}/{cfg.CORRUPTION.SOURCE_DOMAIN}"
     for severity in severities:
         for i_dom, domain_name in enumerate(dom_names_loop):
         # for severity in severities:
-            folder = os.path.join(folder_save, cfg.CORRUPTION.DATASET, domain_name, str(severity))
+            folder = os.path.join(folder_save, domain_name, str(severity))
             if not os.path.exists(folder):
                 os.makedirs(folder)
-            try:
-                model.reset()
-                logger.info("resetting model")
-            except:
-                logger.warning("not resetting model")
+            # try:
+            #     model.reset()
+            #     logger.info("resetting model")
+            # except:
+            #     logger.warning("not resetting model")
 
         # for severity in severities:
             testset, test_loader = load_dataset(cfg.CORRUPTION.DATASET, cfg.DATA_DIR,
@@ -100,7 +100,7 @@ def evaluate(cfg):
                     acc = get_accuracy_deyo(
                         model, data_loader=test_loader, folder = folder)
                 else:
-                    acc, LL, LS, SL, SS = evaluate_model(model, data_loader=test_loader)
+                    acc, LL, LS, SL, SS = evaluate_model(model, data_loader=test_loader, folder = folder)
                 if cfg.TEST.EPOCH > 1:
                     print(f"epoch: {epoch}, acc: {acc:.2%}")
                     # logger.info(f"epoch: {epoch}, acc: {acc:.2%}")

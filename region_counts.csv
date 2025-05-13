@@ -1,0 +1,9 @@
+region,False,True
+"Low Entropy, Low PLPDs, Low Proposal_CRI",6.0,138.0
+"Low Entropy, Low PLPDs, High Proposal_CRI",0.0,38.0
+"Low Entropy, High PLPDs, Low Proposal_CRI",835.0,1433.0
+"Low Entropy, High PLPDs, High Proposal_CRI",781.0,1185.0
+"High Entropy, Low PLPDs, Low Proposal_CRI",0.0,0.0
+"High Entropy, Low PLPDs, High Proposal_CRI",0.0,0.0
+"High Entropy, High PLPDs, Low Proposal_CRI",0.0,0.0
+"High Entropy, High PLPDs, High Proposal_CRI",0.0,0.0
